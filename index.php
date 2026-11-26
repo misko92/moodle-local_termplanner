@@ -79,9 +79,13 @@ if ($planid >= 0 && $terms) {
     foreach (groups_get_all_groups($course->id) as $g) {
         $groups[$g->id] = format_string($g->name);
     }
+    $copyfrom = $planid ? [] : array_map(
+        'format_string',
+        $DB->get_records_menu('local_termplanner_plan', ['courseid' => $course->id], 'name', 'id, name')
+    );
     $form = new plan_form(
         new moodle_url($url, ['planid' => $planid]),
-        ['terms' => array_map('format_string', $terms), 'groups' => $groups]
+        ['terms' => array_map('format_string', $terms), 'groups' => $groups, 'copyfrom' => $copyfrom]
     );
     if ($form->is_cancelled()) {
         redirect($url);
@@ -98,8 +102,20 @@ if ($planid >= 0 && $terms) {
         } else {
             $rec->timecreated = $rec->timemodified;
             $planid = $DB->insert_record('local_termplanner_plan', $rec);
+            if (!empty($data->copyfrom) && isset($copyfrom[$data->copyfrom])) {
+                $new = plan::load($planid);
+                $short = $new->copy_from(plan::load($data->copyfrom));
+                \core\notification::success(get_string('copydone', 'local_termplanner', count($new->items)));
+                foreach ($short as $week => [$from, $to]) {
+                    \core\notification::warning($to ? get_string(
+                        'copyshort',
+                        'local_termplanner',
+                        (object)['week' => $week, 'from' => $from, 'to' => $to]
+                    ) : get_string('copybeyond', 'local_termplanner', $week));
+                }
+            }
         }
-        redirect(new moodle_url('/local/termplanner/plan.php', ['id' => $planid]));
+        redirect(new moodle_url('/local/termplanner/grid.php', ['id' => $planid]));
     }
     if ($planid) {
         $rec = $DB->get_record('local_termplanner_plan', ['id' => $planid, 'courseid' => $course->id], '*', MUST_EXIST);
@@ -136,7 +152,7 @@ if (!$plans) {
     foreach ($plans as $p) {
         $gnames = array_map(fn($g) => format_string($allgroups[$g]->name ?? '?'), array_filter(explode(',', (string)$p->groupids)));
         $table->data[] = [
-            html_writer::link(new moodle_url('/local/termplanner/plan.php', ['id' => $p->id]), format_string($p->name)),
+            html_writer::link(new moodle_url('/local/termplanner/grid.php', ['id' => $p->id]), format_string($p->name)),
             format_string($terms[$p->termid] ?? ''),
             $gnames ? implode(', ', $gnames) : get_string('wholecourse', 'local_termplanner'),
             $p->timepublished ? userdate($p->timepublished, get_string('strftimedatetimeshort', 'langconfig'))

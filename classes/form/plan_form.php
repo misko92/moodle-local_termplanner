@@ -31,7 +31,7 @@ require_once($CFG->libdir . '/formslib.php');
 /**
  * Plan settings: name, term, event name, where the week event goes, groups.
  *
- * Custom data: courseid, terms (id => name), groups (id => name).
+ * Custom data: terms (id => name), groups (id => name), copyfrom (plan id => name, only for a new plan).
  */
 class plan_form extends \moodleform {
     /**
@@ -64,6 +64,15 @@ class plan_form extends \moodleform {
             ['multiple' => true]
         );
         $m->addHelpButton('groupids', 'groups', 'local_termplanner');
+        if (!empty($this->_customdata['copyfrom'])) {
+            $m->addElement(
+                'select',
+                'copyfrom',
+                get_string('copyfrom', 'local_termplanner'),
+                [0 => get_string('copynone', 'local_termplanner')] + $this->_customdata['copyfrom']
+            );
+            $m->addHelpButton('copyfrom', 'copyfrom', 'local_termplanner');
+        }
         $this->add_action_buttons();
     }
 }

@@ -199,4 +199,90 @@ final class plan_test extends \advanced_testcase {
         }
         $this->assertEqualsCanonicalizing([$g1->id, $g2->id], array_column($events, 'groupid'));
     }
+
+    public function test_place_item(): void {
+        $plan = $this->make_plan();
+        $a = $plan->add_item('2027-01-05', $this->cm['CFA Section 1.1']);
+        $b = $plan->add_item('2027-01-05', $this->cm['CFA Section 1.2']);
+        $c = $plan->add_item('2027-01-07', 0, 'Read');
+        // Drop the text line before b on Tuesday.
+        $plan->place_item($c->id, '2027-01-05', $b->id);
+        $day = array_values(array_filter($plan->items, fn($i) => $i->day === '2027-01-05'));
+        $this->assertSame([$a->id, $c->id, $b->id], array_map(fn($i) => (int)$i->id, $day));
+        // Without "before" it goes to the end of the day.
+        $plan->place_item($a->id, '2027-01-05');
+        $day = array_values(array_filter($plan->items, fn($i) => $i->day === '2027-01-05'));
+        $this->assertSame([$c->id, $b->id, $a->id], array_map(fn($i) => (int)$i->id, $day));
+    }
+
+    public function test_shift_from(): void {
+        $plan = $this->make_plan();
+        $a = $plan->add_item('2027-01-05', $this->cm['CFA Section 1.1']);
+        $lab = $plan->add_item('2027-01-08', $this->cm['Lab 1.1']);
+        // Snow day on Thursday Jan 7: everything from then on moves one school day later.
+        $this->assertTrue($plan->shift_from('2027-01-07', 1));
+        $this->assertSame('2027-01-05', $plan->items[$a->id]->day);
+        $this->assertSame('2027-01-11', $plan->items[$lab->id]->day);
+        // Deadlines move too: Wed 1/13 -> Thu 1/14, Fri 1/15 -> Tue 1/19 (Mon 1/18 is MLK Day).
+        $this->assertSame('2027-01-14', $plan->items[$lab->id]->closesday);
+        $this->assertSame('2027-01-19', $plan->items[$lab->id]->checkday);
+        // Nothing moves when something would leave the term.
+        $this->assertFalse($plan->shift_from('2027-01-04', 30));
+        $this->assertSame('2027-01-05', $plan->items[$a->id]->day);
+    }
+
+    public function test_copy_from(): void {
+        global $DB;
+        $source = $this->make_plan();
+        $source->add_item('2027-01-05', $this->cm['CFA Section 1.1']);
+        $source->add_item('2027-01-08', $this->cm['Lab 1.1']);
+        $source->add_item('2027-01-22', 0, 'Review');
+        // A second term two weeks long, with a holiday on the Monday of week 1.
+        $termid = $DB->insert_record(
+            'local_termplanner_term',
+            ['name' => 'U', 'startday' => '2027-03-08', 'endday' => '2027-03-19']
+        );
+        $DB->insert_record(
+            'local_termplanner_day',
+            ['termid' => $termid, 'day' => '2027-03-08', 'type' => 'noschool', 'label' => 'X']
+        );
+        $planid = $DB->insert_record('local_termplanner_plan', ['courseid' => $this->course->id, 'termid' => $termid,
+            'name' => 'Q', 'eventprefix' => 'Q', 'eventday' => 'last', 'groupids' => '']);
+        $target = plan::load($planid);
+        $short = $target->copy_from($source);
+        $days = array_values(array_map(fn($i) => $i->day, $target->items));
+        sort($days);
+        // Tue (2nd school day of week 1) -> Wed 3/10 (2nd school day there); Fri -> Fri 3/12 (last day).
+        // Week 3 does not exist here, so its line goes to week 2: Fri 1/22 was the 4th school day of an
+        // MLK week, so it lands on the 4th school day, Thu 3/18.
+        $this->assertSame(['2027-03-10', '2027-03-12', '2027-03-18'], $days);
+        $this->assertSame([1 => [5, 4], 3 => [4, 0]], $short);
+        // The lab got the usual deadlines in week 2.
+        $lab = array_values(array_filter($target->items, fn($i) => (int)$i->cmid === $this->cm['Lab 1.1']))[0];
+        $this->assertSame(['2027-03-17', '2027-03-19'], [$lab->closesday, $lab->checkday]);
+    }
+
+    public function test_external_update(): void {
+        $plan = $this->make_plan();
+        $this->setAdminUser();
+        $item = $plan->add_item('2027-01-05', $this->cm['CFA Section 1.1']);
+        $result = \local_termplanner\external\update::execute($plan->record->id, [
+            ['op' => 'add', 'day' => '2027-01-06', 'text' => 'Read section 2', 'level' => 1],
+            ['op' => 'move', 'itemid' => $item->id, 'day' => '2027-01-07'],
+            ['op' => 'move', 'itemid' => $item->id, 'day' => '2031-01-01'],
+        ]);
+        $state = json_decode($result['state'], true);
+        $this->assertSame('', $result['error']);
+        $this->assertCount(2, $state['items']);
+        $moved = array_values(array_filter($state['items'], fn($i) => $i['id'] === (int)$item->id))[0];
+        // The move outside the term was ignored.
+        $this->assertSame('2027-01-07', $moved['day']);
+        $this->assertSame(3, count(array_filter($state['weeks'], fn($w) => $w['number'] !== null)));
+        $this->assertStringContainsString('Read section 2', $state['previews'][1]);
+        // Someone without the capability is refused.
+        $student = $this->getDataGenerator()->create_and_enrol($this->course, 'student');
+        $this->setUser($student);
+        $this->expectException(\required_capability_exception::class);
+        \local_termplanner\external\get_state::execute($plan->record->id);
+    }
 }

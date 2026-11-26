@@ -1,0 +1,52 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_termplanner/grid
+
+    The week grid. The grid itself, the checks and the side panel are drawn by local_termplanner/grid.
+
+    Example context (json):
+    {
+        "planid": 3, "title": "Chem A · Tri 2", "term": "Tri 2 2026-27", "audience": "everyone in the course",
+        "published": "Not published yet", "strings": "{}", "publishurl": "#", "listurl": "#", "settingsurl": "#",
+        "backurl": "#"
+    }
+}}
+<div class="local-termplanner tp-gridview" id="local-termplanner-grid" data-planid="{{planid}}" data-strings="{{strings}}">
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <h2 class="mb-0 me-2">{{title}}</h2>
+        <span class="badge bg-secondary">{{term}}</span>
+        <span class="text-muted small">{{#str}} publishaudience, local_termplanner, {{audience}} {{/str}}</span>
+        <span class="flex-grow-1"></span>
+        <a class="btn btn-primary" href="{{publishurl}}">{{#str}} publish, local_termplanner {{/str}} <span class="badge bg-light text-dark ms-1" data-region="pending"></span></a>
+    </div>
+    <p class="small mb-2">
+        <a href="{{backurl}}">{{#str}} back, local_termplanner {{/str}}</a> ·
+        <a href="{{settingsurl}}">{{#str}} editplan, local_termplanner {{/str}}</a> ·
+        <a href="{{listurl}}">{{#str}} listview, local_termplanner {{/str}}</a> ·
+        <span class="text-muted">{{published}}</span>
+    </p>
+    <p class="small text-muted mb-3">{{#str}} grid_hint, local_termplanner {{/str}}</p>
+    <div class="tp-layout">
+        <div class="tp-gridbox" data-region="grid" aria-busy="true"><div class="p-3">{{#pix}} i/loading, core {{/pix}}</div></div>
+        <aside class="tp-side">
+            <section class="card mb-3"><div class="card-body p-2" data-region="checks"></div></section>
+            <section class="card"><div class="card-body p-2" data-region="detail" aria-live="polite"></div></section>
+        </aside>
+    </div>
+    <div class="tp-toast" data-region="toast" hidden></div>
+</div>

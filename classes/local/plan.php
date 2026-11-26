@@ -330,6 +330,122 @@ class plan {
     }
 
     /**
+     * Put an item on a day, before another item of that day (or at the end).
+     *
+     * @param int $itemid
+     * @param string $day YYYY-MM-DD
+     * @param int $beforeid item to go before, 0 for the end of the day
+     */
+    public function place_item(int $itemid, string $day, int $beforeid = 0): void {
+        $item = $this->items[$itemid] ?? null;
+        if (!$item || $beforeid === $itemid) {
+            return;
+        }
+        $list = array_values(array_filter($this->items, fn($i) => $i->day === $day && (int)$i->id !== $itemid));
+        $pos = count($list);
+        foreach ($list as $k => $i) {
+            if ((int)$i->id === $beforeid) {
+                $pos = $k;
+                break;
+            }
+        }
+        $item->day = $day;
+        array_splice($list, $pos, 0, [$item]);
+        $this->renumber($list);
+    }
+
+    /**
+     * Move everything planned on or after a day by a number of school days, deadlines included (a snow day).
+     *
+     * @param string $fromday YYYY-MM-DD
+     * @param int $n school days, negative for earlier
+     * @return bool false when something would leave the term (nothing is changed then)
+     */
+    public function shift_from(string $fromday, int $n): bool {
+        global $DB;
+        $updates = [];
+        foreach ($this->items as $it) {
+            $u = ['id' => $it->id];
+            foreach (['day', 'closesday', 'checkday'] as $f) {
+                if ($it->$f && $it->$f >= $fromday) {
+                    $new = $this->cal->shift($it->$f, $n);
+                    if ($new === null) {
+                        return false;
+                    }
+                    $u[$f] = $new;
+                }
+            }
+            if (count($u) > 1) {
+                $updates[] = (object)$u;
+            }
+        }
+        foreach ($updates as $u) {
+            $DB->update_record('local_termplanner_item', $u);
+        }
+        $this->touch();
+        $this->reload();
+        // Keep each day's order intact after items from different days landed together.
+        foreach (array_unique(array_map(fn($i) => $i->day, $this->items)) as $day) {
+            $this->renumber(array_values(array_filter($this->items, fn($i) => $i->day === $day)));
+        }
+        return true;
+    }
+
+    /**
+     * Copy another plan's items into this plan, week n to week n.
+     *
+     * Each item keeps its place in the week: the k-th school day of a week maps to the k-th school day of the same
+     * week here (or the week's last day if this week is shorter). Weeks beyond this term's last week go to the last
+     * week. Lab deadlines are reset to the usual pattern.
+     *
+     * @param plan $source
+     * @return array weeks that came out shorter: [week => [source days, target days]]
+     */
+    public function copy_from(plan $source): array {
+        global $DB;
+        $lastweek = 0;
+        foreach ($this->cal->weeks() as $w) {
+            $lastweek = $w['number'] ?? $lastweek;
+        }
+        $short = [];
+        $sort = [];
+        $labs = [];
+        foreach ($source->items as $it) {
+            $week = $source->cal->week_of($it->day);
+            if ($week === null) {
+                continue;
+            }
+            $srcdays = $source->cal->school_days($week);
+            $target = min($week, $lastweek);
+            $days = $this->cal->school_days($target);
+            if (!$days) {
+                continue;
+            }
+            if (count($days) < count($srcdays) || $target !== $week) {
+                $short[$week] = [count($srcdays), $target !== $week ? 0 : count($days)];
+            }
+            $idx = max(0, (int)array_search($it->day, $srcdays, true));
+            $day = $days[min($idx, count($days) - 1)];
+            $sort[$day] = ($sort[$day] ?? -1) + 1;
+            $id = $DB->insert_record('local_termplanner_item', ['planid' => $this->record->id, 'day' => $day,
+                'sortorder' => $sort[$day], 'cmid' => $it->cmid, 'text' => $it->text, 'level' => $it->level,
+                'closesday' => null, 'checkday' => null]);
+            if ($it->cmid && (($this->activities()[$it->cmid]->kind ?? '') === 'lab')) {
+                $labs[$id] = [$day, $it->closesday === null && $it->checkday !== null];
+            }
+        }
+        $this->reload();
+        foreach ($labs as $id => [$day, $checkonly]) {
+            [$c, $k] = $this->default_deadlines($day, $this->labs_due_week_after($day, $id));
+            $DB->update_record('local_termplanner_item', ['id' => $id, 'closesday' => $checkonly ? null : $c, 'checkday' => $k]);
+            $this->reload();
+        }
+        $this->touch();
+        ksort($short);
+        return $short;
+    }
+
+    /**
      * Reset a lab's deadlines to the usual pattern.
      *
      * @param int $itemid

@@ -31,6 +31,7 @@ require(__DIR__ . '/../../config.php');
 
 $id = required_param('id', PARAM_INT);
 $action = optional_param('action', '', PARAM_ALPHA);
+$return = optional_param('return', '', PARAM_ALPHA);
 
 $plan = plan::load($id);
 $course = $plan->course;
@@ -61,7 +62,7 @@ if ($action === 'publish') {
     if (optional_param('confirm', 0, PARAM_BOOL) && confirm_sesskey()) {
         $counts = $publisher->publish();
         redirect(
-            $url,
+            $return === 'grid' ? new moodle_url('/local/termplanner/grid.php', ['id' => $id]) : $url,
             get_string('publishdone', 'local_termplanner', (object)$counts),
             null,
             \core\output\notification::NOTIFY_SUCCESS
@@ -80,7 +81,7 @@ if ($action === 'publish') {
         echo $OUTPUT->notification(implode('<br>', array_column($problems, 'message')), 'warning');
     }
     echo html_writer::start_tag('form', ['method' => 'post', 'action' => $url->out(false)]);
-    foreach (['action' => 'publish', 'confirm' => 1, 'sesskey' => sesskey()] as $k => $v) {
+    foreach (['action' => 'publish', 'confirm' => 1, 'return' => $return, 'sesskey' => sesskey()] as $k => $v) {
         echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => $k, 'value' => $v]);
     }
     echo html_writer::tag(
@@ -88,7 +89,8 @@ if ($action === 'publish') {
         get_string('publishconfirm', 'local_termplanner'),
         ['type' => 'submit', 'class' => 'btn btn-primary me-2']
     );
-    echo html_writer::link($url, get_string('cancel'), ['class' => 'btn btn-secondary']);
+    $cancel = $return === 'grid' ? new moodle_url('/local/termplanner/grid.php', ['id' => $id]) : $url;
+    echo html_writer::link($cancel, get_string('cancel'), ['class' => 'btn btn-secondary']);
     echo html_writer::end_tag('form');
     echo $OUTPUT->footer();
     exit;
@@ -270,6 +272,7 @@ echo $OUTPUT->render_from_template('local_termplanner/plan', [
         ['id' => $course->id, 'planid' => $plan->record->id]
     ))->out(false),
     'backurl' => (new moodle_url('/local/termplanner/index.php', ['id' => $course->id]))->out(false),
+    'gridurl' => (new moodle_url('/local/termplanner/grid.php', ['id' => $plan->record->id]))->out(false),
     'action' => $url->out(false),
     'sesskey' => sesskey(),
     'min' => $term->startday,

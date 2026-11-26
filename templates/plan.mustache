@@ -22,7 +22,7 @@
     Example context (json):
     {
         "title": "Chem A · Tri 2", "term": "Tri 2 2026-27", "audience": "everyone in the course",
-        "published": "Not published yet", "pending": 3, "settingsurl": "#", "backurl": "#", "action": "#",
+        "published": "Not published yet", "pending": 3, "settingsurl": "#", "backurl": "#", "gridurl": "#", "action": "#",
         "sesskey": "abc", "min": "2026-11-30", "max": "2027-03-05", "ok": true, "problems": [],
         "weeks": [{"number": 1, "range": "11/30 – 12/4", "schooldays": "4 school days", "notes": "Mon Staff day",
             "flags": "", "hasitems": true, "preview": "<ul><li>Do CFA’s</li></ul>",
@@ -43,6 +43,7 @@
     <p class="small mb-3">
         <a href="{{backurl}}">{{#str}} back, local_termplanner {{/str}}</a> ·
         <a href="{{settingsurl}}">{{#str}} editplan, local_termplanner {{/str}}</a> ·
+        <a href="{{gridurl}}">{{#str}} gridview, local_termplanner {{/str}}</a> ·
         <span class="text-muted">{{published}}</span>
     </p>
 

@@ -71,3 +71,217 @@
     min-width: 2.2rem;
     font-size: .8rem;
 }
+/* Week grid. */
+.local-termplanner .tp-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 1rem;
+    align-items: start;
+}
+@media (max-width: 1100px) {
+    .local-termplanner .tp-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+.local-termplanner .tp-side {
+    position: sticky;
+    top: 70px;
+}
+.local-termplanner .tp-gridbox {
+    overflow-x: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .5rem;
+    background: var(--bs-body-bg);
+}
+.local-termplanner.tp-busy .tp-gridbox {
+    opacity: .7;
+}
+.local-termplanner .tp-grid {
+    display: grid;
+    grid-template-columns: 96px repeat(5, minmax(100px, 1fr));
+    min-width: 600px;
+}
+.local-termplanner .tp-hd {
+    padding: .3rem .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: var(--bs-secondary-color);
+    background: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.local-termplanner .tp-wkcell {
+    border-bottom: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--bs-border-color);
+    scroll-margin-top: 80px;
+}
+.local-termplanner .tp-wk {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    height: 100%;
+    padding: .4rem .5rem;
+    border: 0;
+    background: transparent;
+    text-align: left;
+}
+.local-termplanner .tp-wk:hover,
+.local-termplanner .tp-wk.tp-sel {
+    background: var(--bs-tertiary-bg);
+}
+.local-termplanner .tp-wkn {
+    font-weight: 600;
+}
+.local-termplanner .tp-wkd {
+    font-size: .75rem;
+    color: var(--bs-secondary-color);
+}
+.local-termplanner .tp-flag {
+    margin-top: .2rem;
+    font-size: .75rem;
+    font-weight: 600;
+    color: var(--bs-warning-text-emphasis);
+}
+.local-termplanner .tp-day {
+    min-height: 70px;
+    padding: .25rem;
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    border-right: 1px solid var(--bs-border-color);
+}
+.local-termplanner .tp-day.tp-off,
+.local-termplanner .tp-break {
+    background: repeating-linear-gradient(135deg, var(--bs-tertiary-bg), var(--bs-tertiary-bg) 6px,
+        var(--bs-secondary-bg) 6px, var(--bs-secondary-bg) 12px);
+}
+.local-termplanner .tp-day.tp-finals {
+    background: var(--bs-info-bg-subtle);
+}
+.local-termplanner .tp-day.tp-outside {
+    background: var(--bs-tertiary-bg);
+}
+.local-termplanner .tp-day.tp-over,
+.local-termplanner .tp-day.tp-sel {
+    outline: 2px dashed var(--bs-primary);
+    outline-offset: -3px;
+}
+.local-termplanner .tp-day.tp-target {
+    cursor: copy;
+}
+.local-termplanner .tp-break {
+    grid-column: 1 / -1;
+    padding: .4rem .75rem;
+    font-size: .8rem;
+    color: var(--bs-secondary-color);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+.local-termplanner .tp-dayhead {
+    display: flex;
+    justify-content: space-between;
+    gap: .25rem;
+    font-size: .72rem;
+}
+.local-termplanner .tp-date {
+    border: 0;
+    background: transparent;
+    padding: 0 .2rem;
+    color: var(--bs-secondary-color);
+    font-variant-numeric: tabular-nums;
+}
+.local-termplanner button.tp-date:hover {
+    color: var(--bs-primary);
+    text-decoration: underline;
+}
+.local-termplanner .tp-tag {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: .65rem;
+    color: var(--bs-secondary-color);
+    text-align: right;
+}
+.local-termplanner .tp-chip {
+    display: block;
+    width: 100%;
+    padding: .15rem .4rem;
+    border: 1px solid transparent;
+    border-radius: .25rem;
+    font-size: .78rem;
+    line-height: 1.25;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: grab;
+    background: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+}
+.local-termplanner .tp-chip.tp-cfa {
+    background: #dbe8f8;
+    color: #1f4f8a;
+}
+.local-termplanner .tp-chip.tp-lab {
+    background: #dcefe3;
+    color: #23613c;
+    font-weight: 600;
+}
+.local-termplanner .tp-chip.tp-test {
+    background: #f7dfdb;
+    color: #8f2c22;
+    font-weight: 600;
+}
+.local-termplanner .tp-chip.tp-ws {
+    background: #e9e2f5;
+    color: #52397f;
+}
+.local-termplanner .tp-chip.tp-text {
+    background: transparent;
+    border-color: var(--bs-border-color);
+    color: var(--bs-secondary-color);
+}
+.local-termplanner .tp-chip.tp-dl {
+    background: transparent;
+    border: 1px dashed #a66300;
+    color: #8a5300;
+}
+.local-termplanner .tp-chip.tp-dl-check {
+    background: #fff1d6;
+    border-style: solid;
+}
+.local-termplanner .tp-chip.tp-bad {
+    box-shadow: inset 3px 0 0 var(--bs-warning);
+}
+.local-termplanner .tp-chip.tp-sel {
+    box-shadow: 0 0 0 2px var(--bs-primary);
+}
+.local-termplanner .tp-kindtag {
+    display: inline-block;
+    padding: 0 .35rem;
+    border-radius: .25rem;
+    font-size: .7rem;
+    font-weight: 600;
+    background: var(--bs-secondary-bg);
+    margin-bottom: .25rem;
+}
+.local-termplanner .tp-preview ul {
+    padding-left: 1.1rem;
+    margin-bottom: 0;
+}
+.local-termplanner .tp-n {
+    width: 4.5rem;
+}
+.local-termplanner .tp-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+    padding: .4rem .9rem;
+    border-radius: .5rem;
+    background: var(--bs-dark);
+    color: var(--bs-light);
+    font-size: .85rem;
+    z-index: 1050;
+}
