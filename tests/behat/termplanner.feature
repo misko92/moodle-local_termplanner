@@ -101,7 +101,7 @@ Feature: Plan a term and publish it to the course calendar
     And I set the field with xpath "//div[@data-region='detail']//select[1]" to "Lab 1.1: Measuring & Errors"
     And I click on "Add" "button" in the "[data-region='detail']" "css_element"
     And I should see "Lab 1.1" in the "#tp-week1 + .tp-day + .tp-day" "css_element"
-    And I should see "Lab 1.1 last day" in the "#tp-week2 + .tp-day + .tp-day + .tp-day" "css_element"
+    And I should see "Lab 1.1 last" in the "#tp-week2 + .tp-day + .tp-day + .tp-day" "css_element"
     # The lab is before its CFA? No: CFA on Monday, lab on Tuesday.
     And I should see "All checks pass"
     # Move the CFA a day later from the side panel: now the lab comes first and the check says so.

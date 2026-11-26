@@ -285,3 +285,116 @@
     font-size: .85rem;
     z-index: 1050;
 }
+/* Higher contrast for the week grid (2026-11-26: "everything is so light"). */
+.local-termplanner .tp-gridbox {
+    border-color: #8b95a3;
+}
+.local-termplanner .tp-hd {
+    color: #2b3440;
+    background: #dde3ea;
+    border-bottom-color: #8b95a3;
+}
+.local-termplanner .tp-wkcell,
+.local-termplanner .tp-day,
+.local-termplanner .tp-break {
+    border-color: #b3bcc8;
+}
+.local-termplanner .tp-wkcell {
+    background: #f1f4f8;
+}
+.local-termplanner .tp-wkn {
+    font-size: 1rem;
+    color: #1d2430;
+}
+.local-termplanner .tp-wkd {
+    color: #46505e;
+}
+.local-termplanner .tp-flag {
+    color: #8a4b00;
+}
+.local-termplanner .tp-date {
+    color: #2b3440;
+    font-weight: 600;
+}
+.local-termplanner .tp-tag {
+    color: #4a3b00;
+}
+.local-termplanner .tp-day.tp-off,
+.local-termplanner .tp-break {
+    background: repeating-linear-gradient(135deg, #e4e7ec, #e4e7ec 6px, #d2d7df 6px, #d2d7df 12px);
+}
+.local-termplanner .tp-day.tp-finals {
+    background: #e3dcf3;
+}
+.local-termplanner .tp-day.tp-outside {
+    background: #eceff3;
+}
+.local-termplanner .tp-chip {
+    font-size: .82rem;
+    font-weight: 500;
+    border-width: 1px;
+    border-style: solid;
+}
+.local-termplanner .tp-chip.tp-cfa {
+    background: #c7dbf5;
+    border-color: #4b7bbf;
+    color: #0f3566;
+}
+.local-termplanner .tp-chip.tp-lab {
+    background: #bfe3cc;
+    border-color: #3f8a5c;
+    color: #0f4527;
+}
+.local-termplanner .tp-chip.tp-test {
+    background: #f3c9c2;
+    border-color: #b9483b;
+    color: #6e1b12;
+}
+.local-termplanner .tp-chip.tp-ws {
+    background: #dccff1;
+    border-color: #7b5fb0;
+    color: #3a2463;
+}
+.local-termplanner .tp-chip.tp-text {
+    background: #ffffff;
+    border-color: #8b95a3;
+    color: #2b3440;
+}
+.local-termplanner .tp-chip.tp-other {
+    background: #e2e6ec;
+    border-color: #8b95a3;
+    color: #1d2430;
+}
+.local-termplanner .tp-chip.tp-dl {
+    background: #ffffff;
+    border: 2px dashed #b06a00;
+    color: #6b3f00;
+    font-weight: 600;
+}
+.local-termplanner .tp-chip.tp-dl-check {
+    background: #ffd98a;
+    border-style: solid;
+}
+.local-termplanner .tp-chip.tp-bad {
+    box-shadow: inset 4px 0 0 #d98100;
+}
+.local-termplanner .tp-chip.tp-sel {
+    box-shadow: 0 0 0 3px #1a5fb4;
+}
+/* The list view's kind badges. */
+.local-termplanner .tp-kind-cfa {
+    background: #c7dbf5;
+    color: #0f3566;
+}
+.local-termplanner .tp-kind-lab {
+    background: #bfe3cc;
+    color: #0f4527;
+}
+.local-termplanner .tp-kind-test {
+    background: #f3c9c2;
+    color: #6e1b12;
+}
+.local-termplanner .tp-kind-ws {
+    background: #dccff1;
+    color: #3a2463;
+}
