@@ -493,14 +493,21 @@ const renderDetail = () => {
         }
         box.replaceChildren(el('div', {'class': 'fw-bold mb-1', text: `${state.prefix} W${sel.n} · ${s('preview')}`}), preview);
     } else {
-        box.replaceChildren(el('div', {'class': 'small text-muted', text: s('grid_hint')}));
+        // Nothing selected: no panel (the hint is above the grid already).
+        box.replaceChildren();
     }
+    box.closest('.card').hidden = !sel;
 };
 
 const render = () => {
     renderGrid();
     renderChecks();
     renderDetail();
+    // With neither checks nor a selection to show, the grid takes the full width.
+    const side = root.querySelector('.tp-side');
+    const empty = [...side.querySelectorAll('.card')].every(c => c.hidden);
+    side.hidden = empty;
+    root.querySelector('.tp-layout').classList.toggle('tp-noside', empty);
     region('pending').textContent = state.pending ? state.pending : '';
 };
 

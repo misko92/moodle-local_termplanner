@@ -518,3 +518,8 @@
     align-self: stretch;
     box-sizing: border-box;
 }
+
+/* No side panel: the grid takes the whole width. */
+.local-termplanner .tp-layout.tp-noside {
+    grid-template-columns: minmax(0, 1fr);
+}
