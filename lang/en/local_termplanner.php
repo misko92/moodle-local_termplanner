@@ -128,6 +128,7 @@ $string['line_labdeadlines'] = '→ Lab deadlines';
 $string['line_noschool'] = 'No school – {$a}';
 $string['line_take'] = 'Take {$a}';
 $string['listview'] = 'List view';
+$string['missingactivity'] = 'Deleted activity';
 $string['movedown'] = 'Move down';
 $string['moveup'] = 'Move up';
 $string['newplan'] = 'New plan';

@@ -49,7 +49,7 @@ class state {
                 'sortorder' => (int)$it->sortorder,
                 'cmid' => (int)$it->cmid,
                 'kind' => $it->cmid ? ($act->kind ?? 'missing') : 'text',
-                'name' => $act->name ?? '',
+                'name' => $act->name ?? ($it->cmid ? get_string('missingactivity', 'local_termplanner') : ''),
                 'short' => $act->short ?? '',
                 'section' => $act->sectionname ?? '',
                 'text' => (string)$it->text,

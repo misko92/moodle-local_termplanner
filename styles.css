@@ -523,3 +523,16 @@
 .local-termplanner .tp-layout.tp-noside {
     grid-template-columns: minmax(0, 1fr);
 }
+
+/* An activity deleted from the course. */
+.local-termplanner .tp-chip.tp-missing {
+    background: #fff;
+    border: 2px dashed #b9483b;
+    color: #8f2c22;
+    font-style: italic;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-missing {
+    background: #1b2027;
+    border-color: #e07a6d;
+    color: #fbe0dc;
+}
