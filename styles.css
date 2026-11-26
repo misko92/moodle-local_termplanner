@@ -1,0 +1,73 @@
+.local-termplanner .tp-bar {
+    position: sticky;
+    top: 60px;
+    z-index: 3;
+}
+.local-termplanner .tp-break {
+    background: repeating-linear-gradient(135deg, var(--bs-tertiary-bg), var(--bs-tertiary-bg) 6px, var(--bs-secondary-bg) 6px, var(--bs-secondary-bg) 12px);
+}
+.local-termplanner .tp-indent-1 {
+    padding-left: 1.5rem;
+}
+.local-termplanner .tp-indent-2 {
+    padding-left: 3rem;
+}
+.local-termplanner .tp-indent-3 {
+    padding-left: 4.5rem;
+}
+.local-termplanner .tp-name {
+    min-width: 12rem;
+}
+.local-termplanner .tp-deadlines {
+    display: grid;
+    grid-template-columns: auto auto;
+    gap: .15rem .4rem;
+    align-items: center;
+    max-width: 19rem;
+}
+.local-termplanner .tp-kind {
+    display: inline-block;
+    min-width: 2.6rem;
+    padding: 0 .35rem;
+    border-radius: .25rem;
+    font-size: .75rem;
+    font-weight: 600;
+    text-align: center;
+    background: var(--bs-secondary-bg);
+}
+.local-termplanner .tp-kind-cfa {
+    background: #dbe8f8;
+    color: #1f4f8a;
+}
+.local-termplanner .tp-kind-lab {
+    background: #dcefe3;
+    color: #23613c;
+}
+.local-termplanner .tp-kind-test {
+    background: #f7dfdb;
+    color: #8f2c22;
+}
+.local-termplanner .tp-kind-ws {
+    background: #e9e2f5;
+    color: #52397f;
+}
+.local-termplanner tr.tp-flagged > td:first-child {
+    box-shadow: inset 4px 0 0 var(--bs-warning);
+}
+.local-termplanner .tp-addcm {
+    max-width: 28rem;
+}
+.local-termplanner .tp-addtext {
+    max-width: 22rem;
+}
+.local-termplanner section.card {
+    scroll-margin-top: 130px;
+}
+.local-termplanner .tp-addcm {
+    min-width: 16rem;
+}
+.local-termplanner .tp-dayname {
+    display: inline-block;
+    min-width: 2.2rem;
+    font-size: .8rem;
+}
