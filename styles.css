@@ -506,3 +506,15 @@
     border-color: #c39af0;
     color: #ead9ff;
 }
+
+/* Indented chips (margin-left) must shrink to fit their day, not spill into the next one. */
+.local-termplanner .tp-day {
+    min-width: 0;
+    overflow: hidden;
+}
+.local-termplanner .tp-day .tp-chip {
+    width: auto;
+    max-width: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+}
