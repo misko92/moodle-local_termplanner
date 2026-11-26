@@ -357,4 +357,25 @@ final class plan_test extends \advanced_testcase {
         $DB->set_field('local_termplanner_plan', 'labrules', 0, ['id' => $plan->record->id]);
         $this->assertSame([], checks::run(plan::load($plan->record->id))['problems']);
     }
+
+    public function test_copy_day_by_day(): void {
+        global $DB;
+        $source = $this->make_plan();
+        // Days 1, 2 and 11 of the source term (Mon 1/4, Tue 1/5, and Tue 1/19 after MLK Day).
+        $source->add_item('2027-01-04', 0, 'One');
+        $source->add_item('2027-01-05', 0, 'Two');
+        $source->add_item('2027-01-19', 0, 'Eleven');
+        $termid = $DB->insert_record(
+            'local_termplanner_term',
+            ['name' => 'V', 'startday' => '2027-03-03', 'endday' => '2027-03-12']
+        );
+        $planid = $DB->insert_record('local_termplanner_plan', ['courseid' => $this->course->id, 'termid' => $termid,
+            'name' => 'R', 'eventprefix' => 'R', 'eventday' => 'last', 'groupids' => '']);
+        $target = plan::load($planid);
+        $target->copy_from($source, 'sequence');
+        $days = array_values(array_map(fn($i) => $i->text . '@' . $i->day, $target->items));
+        sort($days);
+        // The target term starts on a Wednesday and has 8 school days: day 11 goes to its last day.
+        $this->assertSame(['Eleven@2027-03-12', 'One@2027-03-03', 'Two@2027-03-04'], $days);
+    }
 }

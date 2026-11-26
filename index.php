@@ -106,7 +106,8 @@ if ($planid >= 0 && $terms) {
             $planid = $DB->insert_record('local_termplanner_plan', $rec);
             if (!empty($data->copyfrom) && isset($copyfrom[$data->copyfrom])) {
                 $new = plan::load($planid);
-                $short = $new->copy_from(plan::load($data->copyfrom));
+                $mode = ($data->copymode ?? 'week') === 'sequence' ? 'sequence' : 'week';
+                $short = $new->copy_from(plan::load($data->copyfrom), $mode);
                 \core\notification::success(get_string('copydone', 'local_termplanner', count($new->items)));
                 foreach ($short as $week => [$from, $to]) {
                     \core\notification::warning($to ? get_string(

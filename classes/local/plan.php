@@ -402,10 +402,15 @@ class plan {
      * week here (or the week's last day if this week is shorter). Weeks beyond this term's last week go to the last
      * week. Lab deadlines are reset to the usual pattern; due days keep their distance in school days.
      *
+     * With $mode "sequence" items go by school-day position instead: the source's 1st school day to this term's 1st
+     * school day, and so on (the last school day takes anything beyond). That suits terms whose breaks and short weeks
+     * fall in different places.
+     *
      * @param plan $source
-     * @return array weeks that came out shorter: [week => [source days, target days]]
+     * @param string $mode "week" (same week, same school day of the week) or "sequence" (school day n to school day n)
+     * @return array weeks that came out shorter: [week => [source days, target days]] ("week" mode only)
      */
-    public function copy_from(plan $source): array {
+    public function copy_from(plan $source, string $mode = 'week'): array {
         global $DB;
         $lastweek = 0;
         foreach ($this->cal->weeks() as $w) {
@@ -414,22 +419,32 @@ class plan {
         $short = [];
         $sort = [];
         $labs = [];
+        $srcall = $source->cal->all_school_days();
+        $tgtall = $this->cal->all_school_days();
         foreach ($source->items as $it) {
-            $week = $source->cal->week_of($it->day);
-            if ($week === null) {
-                continue;
+            if ($mode === 'sequence') {
+                $pos = array_search($it->day, $srcall, true);
+                if ($pos === false || !$tgtall) {
+                    continue;
+                }
+                $day = $tgtall[min($pos, count($tgtall) - 1)];
+            } else {
+                $week = $source->cal->week_of($it->day);
+                if ($week === null) {
+                    continue;
+                }
+                $srcdays = $source->cal->school_days($week);
+                $target = min($week, $lastweek);
+                $days = $this->cal->school_days($target);
+                if (!$days) {
+                    continue;
+                }
+                if (count($days) < count($srcdays) || $target !== $week) {
+                    $short[$week] = [count($srcdays), $target !== $week ? 0 : count($days)];
+                }
+                $idx = max(0, (int)array_search($it->day, $srcdays, true));
+                $day = $days[min($idx, count($days) - 1)];
             }
-            $srcdays = $source->cal->school_days($week);
-            $target = min($week, $lastweek);
-            $days = $this->cal->school_days($target);
-            if (!$days) {
-                continue;
-            }
-            if (count($days) < count($srcdays) || $target !== $week) {
-                $short[$week] = [count($srcdays), $target !== $week ? 0 : count($days)];
-            }
-            $idx = max(0, (int)array_search($it->day, $srcdays, true));
-            $day = $days[min($idx, count($days) - 1)];
             $sort[$day] = ($sort[$day] ?? -1) + 1;
             // A due day stays the same number of school days after the item.
             $due = null;

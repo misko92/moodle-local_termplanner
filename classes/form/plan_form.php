@@ -89,6 +89,12 @@ class plan_form extends \moodleform {
                 [0 => get_string('copynone', 'local_termplanner')] + $this->_customdata['copyfrom']
             );
             $m->addHelpButton('copyfrom', 'copyfrom', 'local_termplanner');
+            $m->addElement('select', 'copymode', get_string('copymode', 'local_termplanner'), [
+                'week' => get_string('copymode_week', 'local_termplanner'),
+                'sequence' => get_string('copymode_sequence', 'local_termplanner'),
+            ]);
+            $m->hideIf('copymode', 'copyfrom', 'eq', 0);
+            $m->addHelpButton('copymode', 'copymode', 'local_termplanner');
         }
         $this->add_action_buttons();
     }
