@@ -430,43 +430,74 @@ const renderItemPanel = (box, it) => {
     box.replaceChildren(...kids.filter(Boolean));
 };
 
-const renderDayPanel = (box, day) => {
-    const info = dayInfo(day);
-    const actSel = el('select', {'class': 'form-select form-select-sm mb-1', 'aria-label': s('grid_activity')});
-    actSel.append(el('option', {'value': 0, text: s('grid_activity') + '…'}));
+/**
+ * Fill the activity menu with the activities whose names contain every word of the search, grouped by topic.
+ *
+ * @param {HTMLSelectElement} select
+ * @param {String} search
+ */
+const fillActivities = (select, search) => {
+    const words = search.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = state.activities.filter(a => {
+        // The full name plus the short form used on chips ("PP L23", "Slides L23"), so either can be typed.
+        const short = a.name.replace(/^Practice Problems Lecture\s*/i, 'PP L').replace(/\bLecture\s+/i, 'L');
+        const hay = (a.name + ' ' + short).toLowerCase();
+        return words.every(w => hay.includes(w));
+    });
     const groups = {};
-    state.activities.forEach(a => (groups[a.section] = groups[a.section] || []).push(a));
+    matches.forEach(a => (groups[a.section] = groups[a.section] || []).push(a));
+    const label = words.length ? s('grid_matches', matches.length) : s('grid_activity') + '…';
+    const options = [el('option', {'value': 0, text: label})];
     Object.entries(groups).forEach(([section, list]) => {
         const g = el('optgroup', {'label': section});
         list.forEach(a => g.append(el('option', {'value': a.cmid, text: a.name})));
-        actSel.append(g);
+        options.push(g);
     });
+    select.replaceChildren(...options);
+    // A single match is picked straight away.
+    select.value = matches.length === 1 ? String(matches[0].cmid) : '0';
+};
+
+const renderDayPanel = (box, day) => {
+    const info = dayInfo(day);
+    const actSel = el('select', {'class': 'form-select form-select-sm mb-1', 'aria-label': s('grid_activity')});
+    fillActivities(actSel, '');
+    const search = el('input', {'type': 'search', 'class': 'form-control form-control-sm mb-1',
+        'placeholder': s('grid_search'), 'aria-label': s('grid_search')});
     const text = el('input', {'type': 'text', 'class': 'form-control form-control-sm mb-1', 'placeholder': s('grid_ortext'),
         'aria-label': s('grid_ortext')});
     let level = 0;
     const n = el('input', {'type': 'number', 'class': 'form-control form-control-sm d-inline-block tp-n', 'value': 1, 'min': 1,
         'max': 30, 'aria-label': s('grid_shiftdays')});
     const shift = sign => update([{op: 'shift', day, n: sign * Math.max(1, parseInt(n.value, 10) || 1)}]);
+    const add = () => {
+        const ops = [];
+        const cmid = parseInt(actSel.value, 10);
+        if (cmid) {
+            ops.push({op: 'add', day, cmid, level});
+        }
+        if (text.value.trim()) {
+            ops.push({op: 'add', day, text: text.value.trim(), level});
+        }
+        if (ops.length) {
+            update(ops);
+        }
+    };
+    search.addEventListener('input', () => fillActivities(actSel, search.value));
+    search.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            add();
+        }
+    });
     box.replaceChildren(
         el('div', {'class': 'fw-bold mb-2', text: s('grid_addto', info ? info.short : day)}),
-        actSel, text,
+        search, actSel, text,
         el('div', {'class': 'd-flex gap-2 align-items-center mb-3'}, [
             levelSelect(0, v => {
                 level = v;
             }),
-            btn(s('additem'), () => {
-                const ops = [];
-                const cmid = parseInt(actSel.value, 10);
-                if (cmid) {
-                    ops.push({op: 'add', day, cmid, level});
-                }
-                if (text.value.trim()) {
-                    ops.push({op: 'add', day, text: text.value.trim(), level});
-                }
-                if (ops.length) {
-                    update(ops);
-                }
-            }, 'btn-primary'),
+            btn(s('additem'), add, 'btn-primary'),
         ]),
         el('div', {'class': 'small text-muted mb-1', text: s('grid_shift')}),
         el('div', {'class': 'd-flex gap-1 align-items-center flex-wrap'}, [
@@ -516,6 +547,12 @@ const select = what => {
     sel = same ? null : what;
     confirmDelete = 0;
     render();
+    if (sel && sel.type === 'day') {
+        const search = region('detail').querySelector('input[type="search"]');
+        if (search) {
+            search.focus();
+        }
+    }
     if (sel && sel.type === 'week') {
         const w = root.querySelector('#tp-week' + sel.n);
         if (w) {
