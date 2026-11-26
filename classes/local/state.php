@@ -56,6 +56,10 @@ class state {
                 'level' => (int)$it->level,
                 'closes' => $it->closesday,
                 'check' => $it->checkday,
+                'modname' => $act->modname ?? '',
+                'due' => $it->dueday,
+                'opentime' => $it->opentime,
+                'closetime' => $it->closetime,
                 'flagged' => !empty($check['items'][$it->id]),
             ];
         }
@@ -96,8 +100,10 @@ class state {
             'activities' => $activities,
             'problems' => $check['problems'],
             'previews' => $previews,
-            'pending' => count($diff['create']) + count($diff['update']) + count($diff['delete']),
+            'pending' => count($diff['create']) + count($diff['update']) + count($diff['delete']) + count($diff['dates']),
             'prefix' => $plan->record->eventprefix,
+            'labevents' => (bool)$plan->record->labevents,
+            'cutoffdays' => (int)$plan->record->cutoffdays,
         ];
     }
 }

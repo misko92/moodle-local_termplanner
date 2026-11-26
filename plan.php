@@ -76,6 +76,18 @@ if ($action === 'publish') {
     echo html_writer::tag('p', html_writer::tag('strong', get_string('publishcounts', 'local_termplanner', (object)[
         'create' => count($d['create']), 'update' => count($d['update']),
         'delete' => count($d['delete']), 'same' => count($d['same'])])));
+    if ($d['dates']) {
+        echo html_writer::tag('p', get_string('publishdates', 'local_termplanner', count($d['dates'])));
+        $list = [];
+        foreach ($d['dates'] as $c) {
+            $parts = [];
+            foreach ($c['fields'] as $field => $value) {
+                $parts[] = $field . ': ' . ($value ? userdate($value, get_string('strftimedatetimeshort', 'langconfig')) : '-');
+            }
+            $list[] = s($c['name']) . ' — ' . implode(', ', $parts);
+        }
+        echo html_writer::alist($list, ['class' => 'small']);
+    }
     $problems = checks::run($plan)['problems'];
     if ($problems) {
         echo $OUTPUT->notification(implode('<br>', array_column($problems, 'message')), 'warning');

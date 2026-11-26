@@ -152,7 +152,7 @@ final class plan_test extends \advanced_testcase {
         $lab = $plan->add_item('2027-01-07', $this->cm['Lab 1.1']);
         $counts = (new publisher($plan))->publish();
         // Week 1 event, the lab's two deadline events, and a week 2 event that lists the deadlines.
-        $this->assertSame(['created' => 4, 'updated' => 0, 'deleted' => 0, 'unchanged' => 0], $counts);
+        $this->assertSame(['created' => 4, 'updated' => 0, 'deleted' => 0, 'unchanged' => 0, 'dates' => 0], $counts);
         $week = $DB->get_record_select(
             'event',
             'courseid = ? AND ' . $DB->sql_compare_text('name') . ' = ?',
@@ -175,7 +175,10 @@ final class plan_test extends \advanced_testcase {
         $plan->delete_item($lab->id);
         $counts = (new publisher($plan))->publish();
         $this->assertSame(4, $counts['deleted']);
-        $this->assertSame(['created' => 0, 'updated' => 0, 'deleted' => 0, 'unchanged' => 1], (new publisher($plan))->publish());
+        $this->assertSame(
+            ['created' => 0, 'updated' => 0, 'deleted' => 0, 'unchanged' => 1, 'dates' => 0],
+            (new publisher($plan))->publish()
+        );
         $this->assertSame(1, $DB->count_records('event', ['courseid' => $this->course->id]));
     }
 
@@ -284,5 +287,62 @@ final class plan_test extends \advanced_testcase {
         $this->setUser($student);
         $this->expectException(\required_capability_exception::class);
         \local_termplanner\external\get_state::execute($plan->record->id);
+    }
+
+    public function test_days_layout_without_lab_events(): void {
+        global $DB;
+        $plan = $this->make_plan();
+        $DB->update_record('local_termplanner_plan', ['id' => $plan->record->id, 'weekstyle' => 'days', 'labevents' => 0]);
+        $plan = plan::load($plan->record->id);
+        $plan->add_item('2027-01-19', 0, 'Start Lecture 18');
+        $lab = $plan->add_item('2027-01-20', $this->cm['Lab 1.1']);
+        // Without lab events a lab gets no deadlines.
+        $this->assertNull($lab->closesday);
+        $this->assertSame([
+            [0, 'Monday'], [1, 'No school – MLK'],
+            [0, 'Tuesday'], [1, 'Start Lecture 18'],
+            [0, 'Wednesday'], [1, 'Lab 1.1: Measuring'],
+        ], (new publisher($plan))->week_lines(3));
+        // No lab events either.
+        $this->assertSame([], array_filter(
+            (new publisher($plan))->wanted(),
+            fn($k) => !str_starts_with($k, 'week:'),
+            ARRAY_FILTER_USE_KEY
+        ));
+    }
+
+    public function test_publish_sets_activity_dates(): void {
+        global $DB;
+        $plan = $this->make_plan();
+        $assign = $this->getDataGenerator()->create_module('assign', ['course' => $this->course->id,
+            'name' => 'Practice Problems Lecture 18']);
+        $quiz = $this->getDataGenerator()->create_module('quiz', ['course' => $this->course->id, 'name' => 'Topic 05 Test']);
+        $plan = plan::load($plan->record->id);
+        $a = $plan->add_item('2027-01-05', (int)$assign->cmid);
+        $q = $plan->add_item('2027-01-07', (int)$quiz->cmid);
+        $plan->update_item($a->id, ['dueday' => '2027-01-10']);
+        $plan->update_item($q->id, ['opentime' => '09:00', 'closetime' => '10:45']);
+        $pub = new publisher($plan);
+        $this->assertCount(2, $pub->diff()['dates']);
+        $this->assertSame(2, $pub->publish()['dates']);
+        $tz = \core_date::get_server_timezone();
+        $rec = $DB->get_record('assign', ['id' => $assign->id]);
+        $this->assertSame('2027-01-10 23:59', \core_date::strftime('%Y-%m-%d %H:%M', (int)$rec->duedate, $tz));
+        // Cut-off two days later by default.
+        $this->assertSame('2027-01-12 23:59', \core_date::strftime('%Y-%m-%d %H:%M', (int)$rec->cutoffdate, $tz));
+        // The assignment's own "is due" event follows.
+        $this->assertSame((int)$rec->duedate, (int)$DB->get_field(
+            'event',
+            'timestart',
+            ['modulename' => 'assign', 'instance' => $assign->id, 'eventtype' => 'due']
+        ));
+        $rec = $DB->get_record('quiz', ['id' => $quiz->id]);
+        $this->assertSame('2027-01-07 09:00', \core_date::strftime('%Y-%m-%d %H:%M', (int)$rec->timeopen, $tz));
+        $this->assertSame('2027-01-07 10:45', \core_date::strftime('%Y-%m-%d %H:%M', (int)$rec->timeclose, $tz));
+        // Nothing left to do.
+        $this->assertSame([], (new publisher($plan))->diff()['dates']);
+        // A snow day moves the due day too.
+        $plan->shift_from('2027-01-05', 1);
+        $this->assertSame('2027-01-11', $plan->items[$a->id]->dueday);
     }
 }

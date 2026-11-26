@@ -93,6 +93,8 @@ if ($planid >= 0 && $terms) {
     if ($data = $form->get_data()) {
         $rec = (object)['courseid' => $course->id, 'termid' => $data->termid, 'name' => $data->name,
             'eventprefix' => trim($data->eventprefix), 'eventday' => $data->eventday,
+            'weekstyle' => $data->weekstyle === 'days' ? 'days' : 'list', 'labevents' => empty($data->labevents) ? 0 : 1,
+            'cutoffdays' => max(0, min(7, (int)$data->cutoffdays)),
             'groupids' => implode(',', array_map('intval', array_intersect($data->groupids ?? [], array_keys($groups)))),
             'timemodified' => time()];
         if ($planid) {

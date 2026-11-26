@@ -132,7 +132,7 @@ const chipLabel = it => {
     if (it.kind === 'ws') {
         return it.short.replace(/^Worksheets\s*&\s*Notes\s*/i, 'WS&N ').replace(/Topic\s*/i, '') + ' ✓';
     }
-    return it.short || it.name;
+    return (it.short || it.name).replace(/^Practice Problems Lecture\s*/i, 'PP L').replace(/\bLecture\s+/i, 'L');
 };
 
 const fullName = it => (it.kind === 'text' ? it.text : it.name);
@@ -150,7 +150,15 @@ const dropBefore = e => {
 
 const chip = (it, mode = 'item') => {
     const isItem = mode === 'item';
-    const label = isItem ? chipLabel(it) : `${it.short} ${s(mode === 'closes' ? 'grid_lastday' : 'grid_checkoff')}`;
+    const modeLabel = {closes: s('grid_lastday'), check: s('grid_checkoff'), due: s('grid_due')};
+    let label = isItem ? chipLabel(it) : `${chipLabel(it)} ${modeLabel[mode]}`;
+    if (mode === 'due' && it.due) {
+        // A due day on a weekend is shown on that week's Friday.
+        const wd = new Date(it.due + 'T12:00:00').getDay();
+        if (wd === 0 || wd === 6) {
+            label += ' ' + (wd === 0 ? 'Sun' : 'Sat');
+        }
+    }
     // A div, not a button: Firefox will not drag buttons. Keyboard users get Enter/Space like a button.
     const c = el('div', {
         'role': 'button',
@@ -158,7 +166,7 @@ const chip = (it, mode = 'item') => {
         'class': `tp-chip tp-${isItem ? it.kind : 'dl tp-dl-' + mode}${it.flagged && isItem ? ' tp-bad' : ''}`
             + (sel && sel.type === 'item' && sel.id === it.id ? ' tp-sel' : ''),
         'draggable': 'true',
-        'title': isItem ? fullName(it) : (mode === 'closes' ? s('closesday') : s('checkday')) + ': ' + it.name,
+        'title': isItem ? fullName(it) : ({closes: s('closesday'), check: s('checkday'), due: s('dueday')})[mode] + ': ' + it.name,
         'data-item': isItem ? it.id : null,
         'style': isItem && it.level ? `margin-left:${it.level * 10}px` : null,
         'text': label,
@@ -215,12 +223,21 @@ const renderGrid = () => {
     state.items.forEach(it => (byDay[it.day] = byDay[it.day] || []).push(it));
     Object.values(byDay).forEach(list => list.sort((a, b) => a.sortorder - b.sortorder));
     const deadlines = {};
-    state.items.filter(i => i.kind === 'lab').forEach(it => {
-        if (it.closes) {
-            (deadlines[it.closes] = deadlines[it.closes] || []).push([it, 'closes']);
+    const addDeadline = (day, it, mode) => (deadlines[day] = deadlines[day] || []).push([it, mode]);
+    state.items.forEach(it => {
+        if (it.kind === 'lab' && state.labevents) {
+            if (it.closes) {
+                addDeadline(it.closes, it, 'closes');
+            }
+            if (it.check) {
+                addDeadline(it.check, it, 'check');
+            }
         }
-        if (it.check) {
-            (deadlines[it.check] = deadlines[it.check] || []).push([it, 'check']);
+        if (it.due) {
+            const d = new Date(it.due + 'T12:00:00');
+            const back = {'0': 2, '6': 1}[d.getDay()] || 0;
+            d.setDate(d.getDate() - back);
+            addDeadline(d.toISOString().slice(0, 10), it, 'due');
         }
     });
     state.weeks.forEach(w => {
@@ -377,7 +394,21 @@ const renderItemPanel = (box, it) => {
             'aria-label': s('textline'),
             'on': {change: e => update([{op: 'set', itemid: it.id, field: 'text', value: e.target.value}])}})));
     }
-    if (it.kind === 'lab') {
+    if (it.modname === 'assign') {
+        const due = dateInput(it.due, v => update([{op: 'set', itemid: it.id, field: 'due', value: v}]), s('dueday'), true);
+        // Due days may be any day of the week, not only school days.
+        due.removeAttribute('min');
+        due.removeAttribute('max');
+        kids.push(field(s('dueday'), due));
+    }
+    if (it.modname === 'quiz') {
+        const timeInput = (value, name) => el('input', {'type': 'time', 'class': 'form-control form-control-sm',
+            'value': value || '', 'aria-label': s(name === 'opentime' ? 'quizopen' : 'quizclose'),
+            'on': {change: e => update([{op: 'set', itemid: it.id, field: name, value: e.target.value}])}});
+        kids.push(field(s('quizopen'), timeInput(it.opentime, 'opentime')));
+        kids.push(field(s('quizclose'), timeInput(it.closetime, 'closetime')));
+    }
+    if (it.kind === 'lab' && state.labevents) {
         kids.push(field(s('closesday'), dateInput(it.closes, v => update([{op: 'set', itemid: it.id, field: 'closes', value: v}]),
             s('closesday'), true)));
         kids.push(field(s('checkday'), dateInput(it.check, v => update([{op: 'set', itemid: it.id, field: 'check', value: v}]),

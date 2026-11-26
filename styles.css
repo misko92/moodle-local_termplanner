@@ -494,3 +494,15 @@
 [data-bs-theme="dark"] .local-termplanner .tp-chip.tp-sel {
     box-shadow: 0 0 0 3px #6aa5ea;
 }
+
+/* Assignment due-date chips. */
+.local-termplanner .tp-chip.tp-dl-due {
+    background: #fff;
+    border: 2px dotted #7a3fb0;
+    color: #4a1f73;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-dl-due {
+    background: #1b2027;
+    border-color: #c39af0;
+    color: #ead9ff;
+}

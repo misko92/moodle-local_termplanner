@@ -48,7 +48,7 @@ $keys = ['week', 'schooldays', 'weekbreak', 'day_mon', 'day_tue', 'day_wed', 'da
     'level', 'day', 'textline', 'deleteitem', 'resetdeadlines', 'checks', 'checksok', 'preview', 'additem',
     'grid_activity', 'grid_addto', 'grid_checkoff', 'grid_confirmdelete', 'grid_earlier', 'grid_hint', 'grid_lastday',
     'grid_later', 'grid_movehere', 'grid_nextweek', 'grid_noweekitems', 'grid_ortext', 'grid_saved', 'grid_shift',
-    'grid_shiftdays', 'grid_shiftearlier', 'grid_shiftlater'];
+    'grid_shiftdays', 'grid_shiftearlier', 'grid_shiftlater', 'dueday', 'grid_due', 'quizopen', 'quizclose'];
 $strings = [];
 foreach ($keys as $k) {
     $strings[$k] = get_string($k, 'local_termplanner');

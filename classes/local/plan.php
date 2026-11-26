@@ -132,6 +132,8 @@ class plan {
             $name = format_string($cm->name, true, ['context' => $cm->context, 'escape' => false]);
             $list[$cm->id] = (object)[
                 'cmid' => (int)$cm->id,
+                'modname' => $cm->modname,
+                'instance' => (int)$cm->instance,
                 'name' => $name,
                 'kind' => self::kind_of($name),
                 'short' => self::short_name($name),
@@ -242,8 +244,9 @@ class plan {
         $item = (object)[
             'planid' => $this->record->id, 'day' => $day, 'sortorder' => $max, 'cmid' => $cmid,
             'text' => $cmid ? null : $text, 'level' => max(0, min(3, $level)), 'closesday' => null, 'checkday' => null,
+            'dueday' => null, 'opentime' => null, 'closetime' => null,
         ];
-        if ($cmid && ($this->activities()[$cmid]->kind ?? '') === 'lab') {
+        if ($cmid && $this->record->labevents && ($this->activities()[$cmid]->kind ?? '') === 'lab') {
             [$item->closesday, $item->checkday] = $this->default_deadlines($day, $this->labs_due_week_after($day));
         }
         $item->id = $DB->insert_record('local_termplanner_item', $item);
@@ -301,7 +304,7 @@ class plan {
      * Change an item's fields.
      *
      * @param int $itemid
-     * @param array $fields day, level, text, closesday, checkday
+     * @param array $fields day, level, text, closesday, checkday, dueday, opentime, closetime
      */
     public function update_item(int $itemid, array $fields): void {
         global $DB;
@@ -310,7 +313,7 @@ class plan {
             return;
         }
         $update = ['id' => $itemid];
-        foreach (['day', 'level', 'text', 'closesday', 'checkday'] as $f) {
+        foreach (['day', 'level', 'text', 'closesday', 'checkday', 'dueday', 'opentime', 'closetime'] as $f) {
             if (array_key_exists($f, $fields) && $fields[$f] != $item->$f) {
                 $update[$f] = $fields[$f];
             }
@@ -355,7 +358,8 @@ class plan {
     }
 
     /**
-     * Move everything planned on or after a day by a number of school days, deadlines included (a snow day).
+     * Move everything planned on or after a day by a number of school days, deadlines and due days included
+     * (a snow day).
      *
      * @param string $fromday YYYY-MM-DD
      * @param int $n school days, negative for earlier
@@ -366,7 +370,7 @@ class plan {
         $updates = [];
         foreach ($this->items as $it) {
             $u = ['id' => $it->id];
-            foreach (['day', 'closesday', 'checkday'] as $f) {
+            foreach (['day', 'closesday', 'checkday', 'dueday'] as $f) {
                 if ($it->$f && $it->$f >= $fromday) {
                     $new = $this->cal->shift($it->$f, $n);
                     if ($new === null) {
@@ -396,7 +400,7 @@ class plan {
      *
      * Each item keeps its place in the week: the k-th school day of a week maps to the k-th school day of the same
      * week here (or the week's last day if this week is shorter). Weeks beyond this term's last week go to the last
-     * week. Lab deadlines are reset to the usual pattern.
+     * week. Lab deadlines are reset to the usual pattern; due days keep their distance in school days.
      *
      * @param plan $source
      * @return array weeks that came out shorter: [week => [source days, target days]]
@@ -427,10 +431,18 @@ class plan {
             $idx = max(0, (int)array_search($it->day, $srcdays, true));
             $day = $days[min($idx, count($days) - 1)];
             $sort[$day] = ($sort[$day] ?? -1) + 1;
+            // A due day stays the same number of school days after the item.
+            $due = null;
+            if ($it->dueday) {
+                $all = $source->cal->all_school_days();
+                $gap = count(array_filter($all, fn($d) => $d > $it->day && $d <= $it->dueday));
+                $due = $this->cal->shift($day, max(0, $gap)) ?? $this->cal->term->endday;
+            }
             $id = $DB->insert_record('local_termplanner_item', ['planid' => $this->record->id, 'day' => $day,
                 'sortorder' => $sort[$day], 'cmid' => $it->cmid, 'text' => $it->text, 'level' => $it->level,
-                'closesday' => null, 'checkday' => null]);
-            if ($it->cmid && (($this->activities()[$it->cmid]->kind ?? '') === 'lab')) {
+                'closesday' => null, 'checkday' => null, 'dueday' => $due, 'opentime' => $it->opentime,
+                'closetime' => $it->closetime]);
+            if ($it->cmid && $this->record->labevents && (($this->activities()[$it->cmid]->kind ?? '') === 'lab')) {
                 $labs[$id] = [$day, $it->closesday === null && $it->checkday !== null];
             }
         }

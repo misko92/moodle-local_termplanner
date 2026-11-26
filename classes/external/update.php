@@ -35,7 +35,8 @@ use local_termplanner\local\state;
 /**
  * Applies a list of changes to a plan and returns its new state.
  *
- * Operations: move (itemid, day, before), set (itemid, field = day|level|text|closes|check, value), delete (itemid),
+ * Operations: move (itemid, day, before), set (itemid, field = day|level|text|closes|check|due|opentime|closetime,
+ * value), delete (itemid),
  * add (day, cmid or text, level), reset (itemid: usual lab deadlines), shift (day, n: everything from that day on).
  */
 class update extends external_api {
@@ -99,6 +100,14 @@ class update extends external_api {
                         $plan->update_item($o['itemid'], ['day' => $v]);
                     } else if (in_array($o['field'], ['closes', 'check'], true) && ($v === '' || $inside($v))) {
                         $plan->update_item($o['itemid'], [$o['field'] . 'day' => $v === '' ? null : $v]);
+                    } else if ($o['field'] === 'due' && ($v === '' || schoolcal::valid_day($v))) {
+                        // Due days may fall on any day (a Sunday night, say), not only on school days.
+                        $plan->update_item($o['itemid'], ['dueday' => $v === '' ? null : $v]);
+                    } else if (
+                        in_array($o['field'], ['opentime', 'closetime'], true)
+                        && ($v === '' || preg_match('/^\d{1,2}:\d{2}$/', $v))
+                    ) {
+                        $plan->update_item($o['itemid'], [$o['field'] => $v === '' ? null : $v]);
                     }
                     break;
                 case 'delete':

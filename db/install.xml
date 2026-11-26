@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="local/termplanner/db" VERSION="20261126" COMMENT="XMLDB file for local/termplanner"
+<XMLDB PATH="local/termplanner/db" VERSION="20261127" COMMENT="XMLDB file for local/termplanner"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -42,6 +42,9 @@
         <FIELD NAME="eventprefix" TYPE="char" LENGTH="100" NOTNULL="true" SEQUENCE="false" COMMENT="Week events are named prefix + W + number"/>
         <FIELD NAME="eventday" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="last" SEQUENCE="false" COMMENT="last, first or span"/>
         <FIELD NAME="groupids" TYPE="char" LENGTH="255" NOTNULL="false" SEQUENCE="false" COMMENT="Comma-separated group ids; empty = whole course"/>
+        <FIELD NAME="weekstyle" TYPE="char" LENGTH="10" NOTNULL="true" DEFAULT="list" SEQUENCE="false" COMMENT="list or days: how a week's event lists its items"/>
+        <FIELD NAME="labevents" TYPE="int" LENGTH="1" NOTNULL="true" DEFAULT="1" SEQUENCE="false" COMMENT="1 = labs get Closes and Deadline events and a check-off line"/>
+        <FIELD NAME="cutoffdays" TYPE="int" LENGTH="3" NOTNULL="true" DEFAULT="2" SEQUENCE="false" COMMENT="Assignment cut-off, days after the due date (0 = none)"/>
         <FIELD NAME="timepublished" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timecreated" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
         <FIELD NAME="timemodified" TYPE="int" LENGTH="10" NOTNULL="true" DEFAULT="0" SEQUENCE="false"/>
@@ -63,6 +66,9 @@
         <FIELD NAME="level" TYPE="int" LENGTH="2" NOTNULL="true" DEFAULT="0" SEQUENCE="false" COMMENT="Indent level in the week list"/>
         <FIELD NAME="closesday" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Labs: last day to do the lab"/>
         <FIELD NAME="checkday" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Labs: last day to check off"/>
+        <FIELD NAME="dueday" TYPE="char" LENGTH="10" NOTNULL="false" SEQUENCE="false" COMMENT="Assignments: due day, set as the due date on publish"/>
+        <FIELD NAME="opentime" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Quizzes: HH:MM the quiz opens on the item's day"/>
+        <FIELD NAME="closetime" TYPE="char" LENGTH="5" NOTNULL="false" SEQUENCE="false" COMMENT="Quizzes: HH:MM the quiz closes on the item's day"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id"/>

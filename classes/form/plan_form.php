@@ -56,6 +56,20 @@ class plan_form extends \moodleform {
             'first' => get_string('eventday_first', 'local_termplanner'),
             'span' => get_string('eventday_span', 'local_termplanner'),
         ]);
+        $m->addElement('select', 'weekstyle', get_string('weekstyle', 'local_termplanner'), [
+            'list' => get_string('weekstyle_list', 'local_termplanner'),
+            'days' => get_string('weekstyle_days', 'local_termplanner'),
+        ]);
+        $m->addElement('advcheckbox', 'labevents', get_string('labevents', 'local_termplanner'));
+        $m->setDefault('labevents', 1);
+        $m->addHelpButton('labevents', 'labevents', 'local_termplanner');
+        $cutoffs = [0 => get_string('none')];
+        foreach (range(1, 7) as $n) {
+            $cutoffs[$n] = get_string('numdays', 'core', $n);
+        }
+        $m->addElement('select', 'cutoffdays', get_string('cutoffdays', 'local_termplanner'), $cutoffs);
+        $m->setDefault('cutoffdays', 2);
+        $m->addHelpButton('cutoffdays', 'cutoffdays', 'local_termplanner');
         $m->addElement(
             'autocomplete',
             'groupids',

@@ -51,12 +51,56 @@ class publisher {
     /**
      * The lines students see for one week, as [level, text] pairs.
      *
+     * In the "list" layout the week's items follow each other; in the "days" layout each school day gets a heading
+     * (and days without school say so). Lab deadlines that fall in the week come last, when the plan uses them.
+     *
      * @param int $week week number
      * @return array[]
      */
     public function week_lines(int $week): array {
-        $acts = $this->plan->activities();
         $items = $this->plan->week_items($week);
+        $lines = [];
+        if ($this->plan->record->weekstyle === 'days') {
+            $weekinfo = null;
+            foreach ($this->plan->cal->weeks() as $w) {
+                if ($w['number'] === $week) {
+                    $weekinfo = $w;
+                }
+            }
+            $names = ['dayname_mon', 'dayname_tue', 'dayname_wed', 'dayname_thu', 'dayname_fri'];
+            foreach ($weekinfo['days'] ?? [] as $i => $d) {
+                if (!$d['inside']) {
+                    continue;
+                }
+                $dayname = get_string($names[$i], 'local_termplanner');
+                $dayitems = array_values(array_filter($items, fn($it) => $it->day === $d['day']));
+                if (!$d['school']) {
+                    $lines[] = [0, $dayname];
+                    $label = $d['label'] ?: get_string('type_' . $d['type'], 'local_termplanner');
+                    $lines[] = [1, $d['type'] === 'noschool' ? get_string('line_noschool', 'local_termplanner', $label) : $label];
+                    continue;
+                }
+                if ($dayitems) {
+                    $lines[] = [0, $dayname];
+                    $lines = array_merge($lines, $this->item_lines($dayitems, 1));
+                }
+            }
+        } else {
+            $lines = $this->item_lines($items, 0);
+        }
+        return array_merge($lines, $this->deadline_lines($week));
+    }
+
+    /**
+     * Lines for a run of items.
+     *
+     * @param \stdClass[] $items
+     * @param int $offset added to every item's indent level
+     * @return array[]
+     */
+    protected function item_lines(array $items, int $offset): array {
+        $acts = $this->plan->activities();
+        $labevents = !empty($this->plan->record->labevents);
         $lines = [];
         $cfas = [];
         $flushcfas = function () use (&$cfas, &$lines) {
@@ -69,7 +113,7 @@ class publisher {
             }
         };
         foreach ($items as $it) {
-            $lvl = (int)$it->level;
+            $lvl = (int)$it->level + $offset;
             $act = $it->cmid ? ($acts[$it->cmid] ?? null) : null;
             if ($it->cmid && !$act) {
                 continue;
@@ -84,7 +128,7 @@ class publisher {
             $flushcfas();
             if (!$act) {
                 $lines[] = [$lvl, (string)$it->text];
-            } else if ($act->kind === 'lab') {
+            } else if ($act->kind === 'lab' && $labevents) {
                 $lines[] = [$lvl, get_string('line_dolab', 'local_termplanner', $act->name)];
                 $lines[] = [$lvl + 1, get_string('line_checkofflab', 'local_termplanner', $act->short)];
             } else if ($act->kind === 'test') {
@@ -92,18 +136,32 @@ class publisher {
             } else if ($act->kind === 'ws') {
                 $lines[] = [$lvl, get_string('line_checkoffws', 'local_termplanner', $act->name)];
             } else {
-                $lines[] = [$lvl, get_string('line_do', 'local_termplanner', $act->name)];
+                // Anything else (slides, videos, practice problems, a lab without deadline events) is listed by name.
+                $lines[] = [$lvl, $act->name];
             }
         }
         $flushcfas();
-        // Lab deadlines that fall in this week.
+        return $lines;
+    }
+
+    /**
+     * The "Lab deadlines" lines for labs due in a week, when the plan uses lab deadline events.
+     *
+     * @param int $week
+     * @return array[]
+     */
+    protected function deadline_lines(int $week): array {
+        if (empty($this->plan->record->labevents)) {
+            return [];
+        }
+        $acts = $this->plan->activities();
+        $cal = $this->plan->cal;
         $due = [];
         foreach ($this->plan->items as $it) {
             $act = $it->cmid ? ($acts[$it->cmid] ?? null) : null;
             if (!$act || $act->kind !== 'lab') {
                 continue;
             }
-            $cal = $this->plan->cal;
             $closesnow = $it->closesday && $cal->week_of($it->closesday) === $week;
             $checknow = $it->checkday && $cal->week_of($it->checkday) === $week;
             if ($closesnow || $checknow) {
@@ -116,12 +174,13 @@ class publisher {
                 );
             }
         }
-        if ($due) {
-            ksort($due);
-            $lines[] = [0, get_string('line_labdeadlines', 'local_termplanner')];
-            foreach ($due as $text) {
-                $lines[] = [1, $text];
-            }
+        if (!$due) {
+            return [];
+        }
+        ksort($due);
+        $lines = [[0, get_string('line_labdeadlines', 'local_termplanner')]];
+        foreach ($due as $text) {
+            $lines[] = [1, $text];
         }
         return $lines;
     }
@@ -159,7 +218,7 @@ class publisher {
      * @param int $minute
      * @return int
      */
-    protected static function time(string $day, int $hour, int $minute): int {
+    public static function time(string $day, int $hour, int $minute): int {
         [$y, $m, $d] = array_map('intval', explode('-', $day));
         return make_timestamp($y, $m, $d, $hour, $minute, 0, \core_date::get_server_timezone());
     }
@@ -197,7 +256,7 @@ class publisher {
         }
         foreach ($plan->items as $it) {
             $act = $it->cmid ? ($acts[$it->cmid] ?? null) : null;
-            if (!$act || $act->kind !== 'lab') {
+            if (!$act || $act->kind !== 'lab' || empty($plan->record->labevents)) {
                 continue;
             }
             if ($it->closesday) {
@@ -225,6 +284,77 @@ class publisher {
     }
 
     /**
+     * Activity dates the plan sets: assignment due and cut-off dates, quiz open and close times.
+     *
+     * Only activities with a due day (assignments) or a time (quizzes) in the plan are touched.
+     *
+     * @return array[] one per activity that would change: cmid, modname, instance, name, fields => [field => value]
+     */
+    public function activity_dates(): array {
+        global $DB;
+        $plan = $this->plan;
+        $acts = $plan->activities();
+        $changes = [];
+        foreach ($plan->items as $it) {
+            $act = $it->cmid ? ($acts[$it->cmid] ?? null) : null;
+            if (!$act) {
+                continue;
+            }
+            $want = [];
+            if ($act->modname === 'assign' && $it->dueday) {
+                $want['duedate'] = self::time($it->dueday, 23, 59);
+                $cutoff = (int)$plan->record->cutoffdays;
+                $want['cutoffdate'] = $cutoff > 0 ? self::time(schoolcal::add_days($it->dueday, $cutoff), 23, 59) : 0;
+            } else if ($act->modname === 'quiz' && ($it->opentime || $it->closetime)) {
+                foreach (['timeopen' => $it->opentime, 'timeclose' => $it->closetime] as $field => $hm) {
+                    if ($hm && preg_match('/^(\d{1,2}):(\d{2})$/', $hm, $m)) {
+                        $want[$field] = self::time($it->day, (int)$m[1], (int)$m[2]);
+                    }
+                }
+            }
+            if (!$want) {
+                continue;
+            }
+            $current = $DB->get_record($act->modname, ['id' => $act->instance], 'id, ' . implode(', ', array_keys($want)));
+            if (!$current) {
+                continue;
+            }
+            $fields = array_filter($want, fn($v, $k) => (int)$current->$k !== $v, ARRAY_FILTER_USE_BOTH);
+            if ($fields) {
+                $changes[] = ['cmid' => $act->cmid, 'modname' => $act->modname, 'instance' => $act->instance,
+                    'name' => $act->name, 'fields' => $fields];
+            }
+        }
+        return $changes;
+    }
+
+    /**
+     * Write activity dates, and let each activity update its own calendar events.
+     *
+     * @param array[] $changes from activity_dates()
+     */
+    protected function apply_activity_dates(array $changes): void {
+        global $CFG, $DB;
+        if (!$changes) {
+            return;
+        }
+        require_once($CFG->dirroot . '/mod/assign/locallib.php');
+        require_once($CFG->dirroot . '/mod/quiz/lib.php');
+        $course = $this->plan->course;
+        foreach ($changes as $c) {
+            $DB->update_record($c['modname'], (object)(['id' => $c['instance'], 'timemodified' => time()] + $c['fields']));
+            if ($c['modname'] === 'assign') {
+                $cm = get_coursemodule_from_id('assign', $c['cmid'], $course->id, false, MUST_EXIST);
+                $assign = new \assign(\context_module::instance($cm->id), $cm, $course);
+                $assign->update_calendar($cm->id);
+            } else {
+                quiz_update_events($DB->get_record('quiz', ['id' => $c['instance']], '*', MUST_EXIST));
+            }
+        }
+        rebuild_course_cache($course->id, true);
+    }
+
+    /**
      * Compare the wanted events with what the plan published before.
      *
      * @return array ['create' => keys, 'update' => keys, 'delete' => keys, 'same' => keys, 'wanted' => events]
@@ -233,7 +363,8 @@ class publisher {
         global $DB;
         $wanted = $this->wanted();
         $tracked = $DB->get_records('local_termplanner_event', ['planid' => $this->plan->record->id], '', 'eventkey, id, eventid');
-        $out = ['create' => [], 'update' => [], 'delete' => [], 'same' => [], 'wanted' => $wanted];
+        $out = ['create' => [], 'update' => [], 'delete' => [], 'same' => [], 'wanted' => $wanted,
+            'dates' => $this->activity_dates()];
         foreach ($wanted as $key => $e) {
             $ev = isset($tracked[$key]) ? $DB->get_record('event', ['id' => $tracked[$key]->eventid]) : null;
             if (!$ev) {
@@ -258,7 +389,7 @@ class publisher {
     /**
      * Publish: create, update and delete the plan's events.
      *
-     * @return array counts: created, updated, deleted, unchanged
+     * @return array counts: created, updated, deleted, unchanged, dates (activities whose dates were set)
      */
     public function publish(): array {
         global $DB;
@@ -295,8 +426,9 @@ class publisher {
                 );
             }
         }
+        $this->apply_activity_dates($d['dates']);
         $DB->set_field('local_termplanner_plan', 'timepublished', time(), ['id' => $plan->record->id]);
         return ['created' => count($d['create']), 'updated' => count($d['update']), 'deleted' => count($d['delete']),
-            'unchanged' => count($d['same'])];
+            'unchanged' => count($d['same']), 'dates' => count($d['dates'])];
     }
 }

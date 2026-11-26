@@ -84,6 +84,12 @@ class checks {
             if (!$act) {
                 continue;
             }
+            if ($it->dueday && $it->dueday < $it->day) {
+                $add('duebefore', ['name' => $act->short, 'day' => schoolcal::short($it->dueday)], (int)$it->id, $week);
+            }
+            if ($it->opentime && $it->closetime && $it->closetime <= $it->opentime) {
+                $add('closebeforeopen', ['name' => $act->short], (int)$it->id, $week);
+            }
             if ($act->kind === 'lab') {
                 $labsbyweek[$week][] = $act->short;
                 foreach (['closesday', 'checkday'] as $f) {
@@ -98,7 +104,7 @@ class checks {
                         $add('deadlinebefore', ['name' => $act->short, 'day' => schoolcal::short($it->$f)], (int)$it->id, $week);
                     }
                 }
-                if (!$it->checkday) {
+                if (!$it->checkday && $plan->record->labevents) {
                     $add('nocheckday', ['name' => $act->short], (int)$it->id, $week);
                 }
             }
