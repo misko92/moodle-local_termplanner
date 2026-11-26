@@ -398,3 +398,99 @@
     background: #dccff1;
     color: #3a2463;
 }
+
+/* Dark colour mode (Moodle sets data-bs-theme="dark" on the html tag, also when following the system setting). */
+[data-bs-theme="dark"] .local-termplanner .tp-gridbox {
+    border-color: #5b6573;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-hd {
+    color: #d7dde5;
+    background: #2a313b;
+    border-bottom-color: #5b6573;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-wkcell,
+[data-bs-theme="dark"] .local-termplanner .tp-day,
+[data-bs-theme="dark"] .local-termplanner .tp-break {
+    border-color: #454e5a;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-wkcell {
+    background: #222831;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-wk:hover,
+[data-bs-theme="dark"] .local-termplanner .tp-wk.tp-sel {
+    background: #2f3742;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-wkn {
+    color: #eef1f5;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-wkd {
+    color: #b4bdc9;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-flag {
+    color: #ffb35c;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-date {
+    color: #dfe5ec;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-tag {
+    color: #f0d58a;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-day.tp-off,
+[data-bs-theme="dark"] .local-termplanner .tp-break {
+    background: repeating-linear-gradient(135deg, #262b33, #262b33 6px, #323943 6px, #323943 12px);
+}
+[data-bs-theme="dark"] .local-termplanner .tp-day.tp-finals {
+    background: #3a3150;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-day.tp-outside {
+    background: #1d2228;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-cfa,
+[data-bs-theme="dark"] .local-termplanner .tp-kind-cfa {
+    background: #1e3a5f;
+    border-color: #6fa0e0;
+    color: #d8e7fb;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-lab,
+[data-bs-theme="dark"] .local-termplanner .tp-kind-lab {
+    background: #1d4430;
+    border-color: #5fbf86;
+    color: #d4f2df;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-test,
+[data-bs-theme="dark"] .local-termplanner .tp-kind-test {
+    background: #5a2620;
+    border-color: #e07a6d;
+    color: #fbe0dc;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-ws,
+[data-bs-theme="dark"] .local-termplanner .tp-kind-ws {
+    background: #3a2c5c;
+    border-color: #a88ce0;
+    color: #ece4fb;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-text {
+    background: #1b2027;
+    border-color: #6b7584;
+    color: #dfe5ec;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-other {
+    background: #2c333d;
+    border-color: #6b7584;
+    color: #e6eaef;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-dl {
+    background: #1b2027;
+    border-color: #e0a040;
+    color: #ffd796;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-dl-check {
+    background: #6b4a10;
+    color: #ffe7b8;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-bad {
+    box-shadow: inset 4px 0 0 #ffae42;
+}
+[data-bs-theme="dark"] .local-termplanner .tp-chip.tp-sel {
+    box-shadow: 0 0 0 3px #6aa5ea;
+}
