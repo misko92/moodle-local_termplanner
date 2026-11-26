@@ -243,7 +243,11 @@ const renderGrid = () => {
         ]);
         grid.append(el('div', {'class': 'tp-wkcell', 'id': 'tp-week' + w.number}, [wk]));
         w.days.forEach(d => {
-            const cls = ['tp-day', d.school ? '' : (d.type === 'finals' ? 'tp-finals' : 'tp-off'),
+            let offclass = '';
+            if (!d.school) {
+                offclass = d.type === 'finals' ? 'tp-finals' : 'tp-off';
+            }
+            const cls = ['tp-day', offclass,
                 d.type === 'outside' ? 'tp-outside' : '', sel && sel.type === 'day' && sel.day === d.day ? 'tp-sel' : '',
                 sel && sel.type === 'item' && d.school ? 'tp-target' : ''].filter(Boolean).join(' ');
             const head = d.school
