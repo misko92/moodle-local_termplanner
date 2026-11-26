@@ -27,9 +27,9 @@ namespace local_termplanner\local;
 /**
  * Checks a plan against the planning rules. The results are advice; nothing is blocked.
  *
- * - at most 2 labs done in a week, and deadlines for at most 2 labs in a week;
- * - a lab comes after the CFAs that come before it in the same topic of the course;
- * - a test comes after its topic's CFAs;
+ * - when the plan uses the lab rules: at most 2 labs done in a week, and deadlines for at most 2 labs in a week;
+ *   a lab comes after the CFAs that come before it in the same topic of the course; a test comes after its
+ *   topic's CFAs;
  * - every item and deadline is on a school day, and no deadline comes before the lab.
  */
 class checks {
@@ -45,6 +45,7 @@ class checks {
     public static function run(plan $plan): array {
         $acts = $plan->activities();
         $cal = $plan->cal;
+        $rules = !empty($plan->record->labrules);
         $problems = [];
         $flagged = [];
         $weekflags = [];
@@ -108,7 +109,7 @@ class checks {
                     $add('nocheckday', ['name' => $act->short], (int)$it->id, $week);
                 }
             }
-            if ($act->kind === 'lab' || $act->kind === 'test') {
+            if ($rules && ($act->kind === 'lab' || $act->kind === 'test')) {
                 // CFAs of the same topic that come earlier in the course but later in the plan.
                 $late = [];
                 foreach ($acts as $other) {
@@ -128,6 +129,10 @@ class checks {
                     );
                 }
             }
+        }
+        if (!$rules) {
+            $labsbyweek = [];
+            $duebyweek = [];
         }
         foreach ($labsbyweek as $week => $labs) {
             if ($week !== null && count($labs) > self::MAX_LABS) {

@@ -310,6 +310,8 @@ const renderGrid = () => {
 
 const renderChecks = () => {
     const box = region('checks');
+    // Without the lab rules the panel only appears when something is actually wrong.
+    box.closest('.card').hidden = !state.labrules && !state.problems.length;
     const head = el('h3', {'class': 'h6 mb-2', text: s('checks')});
     if (!state.problems.length) {
         box.replaceChildren(head, el('div', {'class': 'alert alert-success py-1 px-2 mb-0 small', text: s('checksok')}));

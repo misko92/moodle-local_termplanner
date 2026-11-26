@@ -291,6 +291,7 @@ echo $OUTPUT->render_from_template('local_termplanner/plan', [
     'max' => $term->endday,
     'problems' => $problems,
     'ok' => !$problems,
+    'showchecks' => $plan->record->labrules || $problems,
     'weeks' => $weeks,
 ]);
 echo $OUTPUT->footer();

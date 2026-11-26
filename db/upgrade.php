@@ -59,5 +59,15 @@ function xmldb_local_termplanner_upgrade($oldversion) {
         upgrade_plugin_savepoint(true, 2026112800, 'local', 'termplanner');
     }
 
+    if ($oldversion < 2026112900) {
+        // Lab rule checks can be switched off per plan (AP has no use for them).
+        $table = new xmldb_table('local_termplanner_plan');
+        $field = new xmldb_field('labrules', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'cutoffdays');
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        upgrade_plugin_savepoint(true, 2026112900, 'local', 'termplanner');
+    }
+
     return true;
 }

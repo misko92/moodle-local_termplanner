@@ -345,4 +345,16 @@ final class plan_test extends \advanced_testcase {
         $plan->shift_from('2027-01-05', 1);
         $this->assertSame('2027-01-11', $plan->items[$a->id]->dueday);
     }
+
+    public function test_lab_rules_can_be_switched_off(): void {
+        global $DB;
+        $plan = $this->make_plan();
+        // A lab before its CFAs breaks the lab rules...
+        $plan->add_item('2027-01-04', $this->cm['Lab 1.1']);
+        $plan->add_item('2027-01-05', $this->cm['CFA Section 1.1']);
+        $this->assertNotEmpty(checks::run($plan)['problems']);
+        // ...which a plan without them does not check.
+        $DB->set_field('local_termplanner_plan', 'labrules', 0, ['id' => $plan->record->id]);
+        $this->assertSame([], checks::run(plan::load($plan->record->id))['problems']);
+    }
 }

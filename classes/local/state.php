@@ -103,6 +103,7 @@ class state {
             'pending' => count($diff['create']) + count($diff['update']) + count($diff['delete']) + count($diff['dates']),
             'prefix' => $plan->record->eventprefix,
             'labevents' => (bool)$plan->record->labevents,
+            'labrules' => (bool)$plan->record->labrules,
             'cutoffdays' => (int)$plan->record->cutoffdays,
         ];
     }

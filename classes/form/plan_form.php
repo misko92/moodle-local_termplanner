@@ -63,6 +63,9 @@ class plan_form extends \moodleform {
         $m->addElement('advcheckbox', 'labevents', get_string('labevents', 'local_termplanner'));
         $m->setDefault('labevents', 1);
         $m->addHelpButton('labevents', 'labevents', 'local_termplanner');
+        $m->addElement('advcheckbox', 'labrules', get_string('labrules', 'local_termplanner'));
+        $m->setDefault('labrules', 1);
+        $m->addHelpButton('labrules', 'labrules', 'local_termplanner');
         $cutoffs = [0 => get_string('none')];
         foreach (range(1, 7) as $n) {
             $cutoffs[$n] = get_string('numdays', 'core', $n);
