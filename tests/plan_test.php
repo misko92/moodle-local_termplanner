@@ -145,6 +145,42 @@ final class plan_test extends \advanced_testcase {
         $this->assertStringContainsString('Accuracy &amp; Precision', $html);
     }
 
+    public function test_bilingual_names_and_lines(): void {
+        global $DB;
+        $plan = $this->make_plan();
+        $ml = '<span lang="en" class="multilang">Lab 1.1: Measuring</span>'
+            . '<span lang="es_mx" class="multilang">Laboratorio 1.1: Medición</span>';
+        $cmid = $this->cm['Lab 1.1'];
+        $DB->set_field('quiz', 'name', $ml, ['id' => get_coursemodule_from_id('quiz', $cmid)->instance]);
+        rebuild_course_cache($this->course->id, true);
+        $plan = plan::load((int)$plan->record->id);
+
+        $this->assertSame('Lab 1.1: Measuring', plan::name_in($ml, 'en'));
+        $this->assertSame('Laboratorio 1.1: Medición', plan::name_in($ml, 'es'));
+        $this->assertSame('A & B', plan::name_in('A &amp; B', 'es_mx'));
+        // Kind and short name come from the English half.
+        $this->assertSame('lab', $plan->activities()[$cmid]->kind);
+        $this->assertSame('Lab 1.1', $plan->activities()[$cmid]->short);
+
+        $plan->add_item('2027-01-06', $cmid);
+        $pub = new publisher($plan);
+        // Spanish phrases come from lang/es_mx; without the es_mx language pack (as in CI) Moodle falls back to
+        // English, so compare against whatever the string manager returns for es_mx.
+        $sm = get_string_manager();
+        $dolab = $sm->get_string('line_dolab', 'local_termplanner', 'Laboratorio 1.1: Medición', 'es_mx');
+        $checkoff = $sm->get_string('line_checkofflab', 'local_termplanner', 'Laboratorio 1.1', 'es_mx');
+        $this->assertSame([[0, $dolab], [1, $checkoff]], $pub->in_language('es_mx')->week_lines(1));
+        $wanted = $pub->wanted();
+        $week = $wanted['week:1']->description;
+        $this->assertStringContainsString('<span lang="en" class="multilang">Do Lab 1.1: Measuring</span>', $week);
+        $this->assertStringContainsString('<span lang="es_mx" class="multilang">' . s($dolab) . '</span>', $week);
+        $this->assertStringContainsString('<span lang="es" class="multilang">' . s($dolab) . '</span>', $week);
+        $closesname = $sm->get_string('event_closes', 'local_termplanner', 'Laboratorio 1.1', 'es_mx');
+        $closes = array_values(array_filter($wanted, fn($e) => str_contains($e->name, $closesname)));
+        $this->assertCount(1, $closes);
+        $this->assertStringContainsString('Lab 1.1 Closes', $closes[0]->name);
+    }
+
     public function test_publish_updates_in_place(): void {
         global $DB;
         $plan = $this->make_plan();

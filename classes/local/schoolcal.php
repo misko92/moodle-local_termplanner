@@ -106,15 +106,19 @@ class schoolcal {
     }
 
     /**
-     * Short label for a day, e.g. "Wed 12/9".
+     * Short label for a day, e.g. "Wed 12/9" (Spanish: "mié 9/12").
      *
      * @param string $day YYYY-MM-DD
+     * @param string|null $lang language for the day name (null = current language)
      * @return string
      */
-    public static function short(string $day): string {
+    public static function short(string $day, ?string $lang = null): string {
         $d = new \DateTimeImmutable($day . ' 12:00:00', new \DateTimeZone('UTC'));
         $names = [1 => 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-        return get_string('day_' . $names[(int)$d->format('N')], 'local_termplanner') . ' ' . $d->format('n/j');
+        $dayname = get_string_manager()->get_string('day_' . $names[(int)$d->format('N')], 'local_termplanner', null, $lang);
+        // Month/day for English (12/4), day/month for Spanish (4/12).
+        $numeric = ($lang && str_starts_with($lang, 'es')) ? $d->format('j/n') : $d->format('n/j');
+        return $dayname . ' ' . $numeric;
     }
 
     /**

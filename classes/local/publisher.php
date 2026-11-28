@@ -48,6 +48,55 @@ class publisher {
         $this->plan = $plan;
     }
 
+    /** @var string|null language for student-facing text (null = the current language) */
+    protected ?string $lang = null;
+
+    /** Spanish variants filter_multilang should match (es_mx has no parent language in Moodle). */
+    const SPANISH = ['es_mx', 'es'];
+
+    /**
+     * A copy of this publisher that writes student-facing text in another language.
+     *
+     * @param string|null $lang language code, or null for the current language
+     * @return static
+     */
+    public function in_language(?string $lang): static {
+        $copy = clone $this;
+        $copy->lang = $lang;
+        return $copy;
+    }
+
+    /**
+     * A plugin string in this publisher's language.
+     *
+     * @param string $id
+     * @param mixed $a
+     * @return string
+     */
+    protected function str(string $id, $a = null): string {
+        return get_string_manager()->get_string($id, 'local_termplanner', $a, $this->lang);
+    }
+
+    /**
+     * An activity's name in this publisher's language.
+     *
+     * @param \stdClass $act from plan::activities()
+     * @return string
+     */
+    protected function actname(\stdClass $act): string {
+        return $this->lang === null ? $act->name : plan::name_in($act->raw, $this->lang);
+    }
+
+    /**
+     * An activity's short name ("Lab 1.1" / "Laboratorio 1.1") in this publisher's language.
+     *
+     * @param \stdClass $act
+     * @return string
+     */
+    protected function actshort(\stdClass $act): string {
+        return $this->lang === null ? $act->short : plan::short_name($this->actname($act));
+    }
+
     /**
      * The lines students see for one week, as [level, text] pairs.
      *
@@ -72,12 +121,12 @@ class publisher {
                 if (!$d['inside']) {
                     continue;
                 }
-                $dayname = get_string($names[$i], 'local_termplanner');
+                $dayname = $this->str($names[$i]);
                 $dayitems = array_values(array_filter($items, fn($it) => $it->day === $d['day']));
                 if (!$d['school']) {
                     $lines[] = [0, $dayname];
-                    $label = $d['label'] ?: get_string('type_' . $d['type'], 'local_termplanner');
-                    $lines[] = [1, $d['type'] === 'noschool' ? get_string('line_noschool', 'local_termplanner', $label) : $label];
+                    $label = $d['label'] ?: $this->str('type_' . $d['type']);
+                    $lines[] = [1, $d['type'] === 'noschool' ? $this->str('line_noschool', $label) : $label];
                     continue;
                 }
                 if ($dayitems) {
@@ -105,7 +154,7 @@ class publisher {
         $cfas = [];
         $flushcfas = function () use (&$cfas, &$lines) {
             if ($cfas) {
-                $lines[] = [$cfas[0][0], get_string(count($cfas) > 1 ? 'line_docfas' : 'line_docfa', 'local_termplanner')];
+                $lines[] = [$cfas[0][0], $this->str(count($cfas) > 1 ? 'line_docfas' : 'line_docfa')];
                 foreach ($cfas as [$lvl, $name]) {
                     $lines[] = [$lvl + 1, $name];
                 }
@@ -122,22 +171,22 @@ class publisher {
                 if ($cfas && $cfas[0][0] !== $lvl) {
                     $flushcfas();
                 }
-                $cfas[] = [$lvl, $act->name];
+                $cfas[] = [$lvl, $this->actname($act)];
                 continue;
             }
             $flushcfas();
             if (!$act) {
                 $lines[] = [$lvl, (string)$it->text];
             } else if ($act->kind === 'lab' && $labevents) {
-                $lines[] = [$lvl, get_string('line_dolab', 'local_termplanner', $act->name)];
-                $lines[] = [$lvl + 1, get_string('line_checkofflab', 'local_termplanner', $act->short)];
+                $lines[] = [$lvl, $this->str('line_dolab', $this->actname($act))];
+                $lines[] = [$lvl + 1, $this->str('line_checkofflab', $this->actshort($act))];
             } else if ($act->kind === 'test') {
-                $lines[] = [$lvl, get_string('line_take', 'local_termplanner', $act->name)];
+                $lines[] = [$lvl, $this->str('line_take', $this->actname($act))];
             } else if ($act->kind === 'ws') {
-                $lines[] = [$lvl, get_string('line_checkoffws', 'local_termplanner', $act->name)];
+                $lines[] = [$lvl, $this->str('line_checkoffws', $this->actname($act))];
             } else {
                 // Anything else (slides, videos, practice problems, a lab without deadline events) is listed by name.
-                $lines[] = [$lvl, $act->name];
+                $lines[] = [$lvl, $this->actname($act)];
             }
         }
         $flushcfas();
@@ -165,11 +214,11 @@ class publisher {
             $closesnow = $it->closesday && $cal->week_of($it->closesday) === $week;
             $checknow = $it->checkday && $cal->week_of($it->checkday) === $week;
             if ($closesnow || $checknow) {
-                $a = (object)['lab' => $act->short, 'closes' => $it->closesday ? schoolcal::short($it->closesday) : '',
-                    'check' => $it->checkday ? schoolcal::short($it->checkday) : ''];
-                $due[($it->checkday ?? $it->closesday) . $act->order] = get_string(
+                $a = (object)['lab' => $this->actshort($act),
+                    'closes' => $it->closesday ? schoolcal::short($it->closesday, $this->lang) : '',
+                    'check' => $it->checkday ? schoolcal::short($it->checkday, $this->lang) : ''];
+                $due[($it->checkday ?? $it->closesday) . $act->order] = $this->str(
                     $it->closesday ? 'line_deadline' : 'line_deadlinecheck',
-                    'local_termplanner',
                     $a
                 );
             }
@@ -178,7 +227,7 @@ class publisher {
             return [];
         }
         ksort($due);
-        $lines = [[0, get_string('line_labdeadlines', 'local_termplanner')]];
+        $lines = [[0, $this->str('line_labdeadlines')]];
         foreach ($due as $text) {
             $lines[] = [1, $text];
         }
@@ -189,25 +238,47 @@ class publisher {
      * Turn [level, text] lines into nested HTML lists.
      *
      * @param array[] $lines
+     * @param array[]|null $spanish the same lines in Spanish: each line then shows in the reader's language
      * @return string
      */
-    public static function lines_to_html(array $lines): string {
+    public static function lines_to_html(array $lines, ?array $spanish = null): string {
         if (!$lines) {
             return '';
         }
+        // Spanish lines are used only when they line up with the English ones (same count and levels).
+        $bilingual = $spanish !== null && count($spanish) === count($lines)
+            && array_column($spanish, 0) === array_column($lines, 0) && $spanish !== $lines;
         $html = '';
         $depth = -1;
-        foreach ($lines as [$lvl, $text]) {
+        foreach ($lines as $i => [$lvl, $text]) {
             $lvl = min($lvl, $depth + 1);
             if ($lvl > $depth) {
                 $html .= str_repeat('<ul>', $lvl - $depth);
             } else {
                 $html .= '</li>' . str_repeat('</ul></li>', $depth - $lvl);
             }
-            $html .= '<li>' . s($text);
+            $html .= '<li>' . ($bilingual ? self::multilang($text, $spanish[$i][1]) : s($text));
             $depth = $lvl;
         }
         return $html . '</li>' . str_repeat('</ul></li>', $depth) . '</ul>';
+    }
+
+    /**
+     * English and Spanish text as filter_multilang spans (plain text, escaped); the same text once when equal.
+     *
+     * @param string $en
+     * @param string $es
+     * @return string HTML
+     */
+    public static function multilang(string $en, string $es): string {
+        if ($en === $es) {
+            return s($en);
+        }
+        $out = '<span lang="en" class="multilang">' . s($en) . '</span>';
+        foreach (self::SPANISH as $code) {
+            $out .= '<span lang="' . $code . '" class="multilang">' . s($es) . '</span>';
+        }
+        return $out;
     }
 
     /**
@@ -234,16 +305,17 @@ class publisher {
         $base = [];
         foreach ($plan->cal->weeks() as $w) {
             // A week gets an event when it has anything to show, even if that is only lab deadlines.
-            $lines = $w['number'] === null ? [] : $this->week_lines($w['number']);
+            $lines = $w['number'] === null ? [] : $this->in_language('en')->week_lines($w['number']);
             if (!$lines) {
                 continue;
             }
+            $spanish = $this->in_language('es_mx')->week_lines($w['number']);
             // Finals days count here: the week's event may sit on the last day of finals.
             $days = array_column(array_filter($w['days'], fn($d) => $d['school'] || $d['type'] === 'finals'), 'day');
             $first = reset($days);
             $last = end($days);
             $e = (object)['name' => trim($plan->record->eventprefix) . ' W' . $w['number'],
-                'description' => self::lines_to_html($lines), 'timeduration' => 0];
+                'description' => self::lines_to_html($lines, $spanish), 'timeduration' => 0];
             if ($plan->record->eventday === 'first') {
                 $e->timestart = self::time($first, 0, 0);
             } else if ($plan->record->eventday === 'span') {
@@ -260,13 +332,25 @@ class publisher {
                 continue;
             }
             if ($it->closesday) {
-                $base['closes:' . $it->id] = (object)['name' => get_string('event_closes', 'local_termplanner', $act->short),
-                    'description' => '<p>' . get_string('event_closes_desc', 'local_termplanner') . '</p>',
+                $en = $this->in_language('en');
+                $es = $this->in_language('es_mx');
+                $base['closes:' . $it->id] = (object)[
+                    'name' => self::multilang(
+                        $en->str('event_closes', $en->actshort($act)),
+                        $es->str('event_closes', $es->actshort($act))
+                    ),
+                    'description' => '<p>' . self::multilang($en->str('event_closes_desc'), $es->str('event_closes_desc')) . '</p>',
                     'timestart' => self::time($it->closesday, 23, 59), 'timeduration' => 0];
             }
             if ($it->checkday) {
-                $base['check:' . $it->id] = (object)['name' => get_string('event_check', 'local_termplanner', $act->short),
-                    'description' => '<p>' . get_string('event_check_desc', 'local_termplanner') . '</p>',
+                $en = $this->in_language('en');
+                $es = $this->in_language('es_mx');
+                $base['check:' . $it->id] = (object)[
+                    'name' => self::multilang(
+                        $en->str('event_check', $en->actshort($act)),
+                        $es->str('event_check', $es->actshort($act))
+                    ),
+                    'description' => '<p>' . self::multilang($en->str('event_check_desc'), $es->str('event_check_desc')) . '</p>',
                     'timestart' => self::time($it->checkday, 23, 59), 'timeduration' => 0];
             }
         }

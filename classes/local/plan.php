@@ -104,6 +104,38 @@ class plan {
     }
 
     /**
+     * One language of a name that may hold filter_multilang spans
+     * (<span lang="en" class="multilang">…</span><span lang="es_mx" class="multilang">…</span>).
+     *
+     * Spanish accepts es_mx or es. A name without multilang spans is the same in every language;
+     * a name without the requested language falls back to English, then to the first language given.
+     *
+     * @param string $raw stored name
+     * @param string $lang language code (en, es, es_mx, …)
+     * @return string plain text (tags removed, entities decoded)
+     */
+    public static function name_in(string $raw, string $lang): string {
+        $plain = fn(string $t): string => trim(html_entity_decode(strip_tags($t), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $langfirst = '~<span[^>]*\blang="([a-zA-Z_-]+)"[^>]*class="multilang"[^>]*>(.*?)</span>~s';
+        $classfirst = '~<span[^>]*class="multilang"[^>]*\blang="([a-zA-Z_-]+)"[^>]*>(.*?)</span>~s';
+        if (!preg_match_all($langfirst, $raw, $m, PREG_SET_ORDER) && !preg_match_all($classfirst, $raw, $m, PREG_SET_ORDER)) {
+            return $plain($raw);
+        }
+        $bylang = [];
+        foreach ($m as [, $code, $text]) {
+            $bylang[str_replace('-', '_', strtolower($code))] = $text;
+        }
+        $want = strtolower($lang);
+        $tries = str_starts_with($want, 'es') ? [$want, 'es_mx', 'es', 'en'] : [$want, 'en'];
+        foreach ($tries as $code) {
+            if (isset($bylang[$code])) {
+                return $plain($bylang[$code]);
+            }
+        }
+        return $plain(reset($bylang));
+    }
+
+    /**
      * Short name of an activity: the part before the first colon ("Lab 4.1", "CFA Section 4.3a").
      *
      * @param string $name activity name
@@ -130,13 +162,17 @@ class plan {
         $order = 0;
         $add = function (\cm_info $cm, \section_info $topic) use (&$list, &$order): void {
             $name = format_string($cm->name, true, ['context' => $cm->context, 'escape' => false]);
+            // Kind and short name always come from the English name, so a bilingual name
+            // ("Lab 1.1" / "Laboratorio 1.1") sorts the same whatever language the teacher uses.
+            $en = self::name_in($cm->name, 'en');
             $list[$cm->id] = (object)[
                 'cmid' => (int)$cm->id,
                 'modname' => $cm->modname,
                 'instance' => (int)$cm->instance,
                 'name' => $name,
-                'kind' => self::kind_of($name),
-                'short' => self::short_name($name),
+                'raw' => $cm->name,
+                'kind' => self::kind_of($en),
+                'short' => self::short_name($en),
                 'section' => (int)$topic->section,
                 'sectionname' => get_section_name($this->course, $topic),
                 'order' => $order++,
